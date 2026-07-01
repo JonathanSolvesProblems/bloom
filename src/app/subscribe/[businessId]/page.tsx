@@ -1,0 +1,99 @@
+'use client'
+
+import { useState, use } from 'react'
+import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react'
+
+export default function SubscribePage({ params }: { params: Promise<{ businessId: string }> }) {
+  const { businessId } = use(params)
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setState('loading')
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId, email }),
+      })
+      if (res.ok) {
+        setState('success')
+      } else {
+        const d = await res.json()
+        setMessage(d.error ?? 'Something went wrong')
+        setState('error')
+      }
+    } catch {
+      setMessage('Could not connect — please try again')
+      setState('error')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-12">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Stay in the loop</h1>
+          <p className="text-gray-500">
+            Subscribe to get our weekly newsletter delivered straight to your inbox.
+          </p>
+        </div>
+
+        {state === 'success' ? (
+          <div className="card bg-white text-center py-10">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">You&apos;re subscribed!</h2>
+            <p className="text-gray-500 text-sm">
+              Look out for our next newsletter — it arrives every Monday morning.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="card bg-white space-y-4">
+            <div>
+              <label className="label">Your email address</label>
+              <input
+                type="email"
+                className="input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={state === 'loading'}
+              />
+            </div>
+            {state === 'error' && (
+              <p className="error-text">{message}</p>
+            )}
+            <button
+              type="submit"
+              disabled={state === 'loading'}
+              className="btn-primary w-full justify-center disabled:opacity-60"
+            >
+              {state === 'loading' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Subscribing…
+                </>
+              ) : (
+                'Subscribe to newsletter'
+              )}
+            </button>
+            <p className="text-xs text-gray-400 text-center">
+              Unsubscribe anytime. We never share your email.
+            </p>
+          </form>
+        )}
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Powered by <span className="text-emerald-600 font-medium">Bloom</span> — AI marketing for local businesses
+        </p>
+      </div>
+    </div>
+  )
+}

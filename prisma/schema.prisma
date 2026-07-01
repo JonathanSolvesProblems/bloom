@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Business {
+  id                   String          @id @default(cuid())
+  createdAt            DateTime        @default(now())
+  name                 String
+  type                 String
+  city                 String
+  province             String          @default("")
+  country              String          @default("CA")
+  description          String
+  brandVoice           String          @default("friendly")
+  promotions           String?
+  ownerEmail           String          @unique
+  ownerName            String
+  tier                 String          @default("free")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String          @default("inactive")
+  subscribers          Subscriber[]
+  weeklyContent        WeeklyContent[]
+  agentLogs            AgentLog[]
+}
+
+model Subscriber {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  email      String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, email])
+}
+
+model WeeklyContent {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  weekOf            String
+  businessId        String
+  business          Business  @relation(fields: [businessId], references: [id])
+  post1             String
+  post2             String
+  post3             String
+  newsletterSubject String
+  newsletterHtml    String
+  newsletterSent    Boolean   @default(false)
+  newsletterSentAt  DateTime?
+  subscriberCount   Int       @default(0)
+}
+
+model AgentLog {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  action     String
+  summary    String
+  details    String?
+}
