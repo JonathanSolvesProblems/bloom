@@ -35,7 +35,7 @@ export default function HomePage() {
             <span className="text-emerald-600">on marketing autopilot.</span>
           </h1>
           <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Bloom writes your weekly social posts, email newsletter, and Google updates — then sends them automatically.
+            Bloom writes your weekly social posts, email newsletter, and Google updates, then sends them automatically.
             Set up once. Never think about marketing again.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -71,7 +71,7 @@ export default function HomePage() {
         <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-20">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">How Bloom works</h2>
           <p className="text-center text-gray-500 mb-14 max-w-xl mx-auto">
-            Three steps. Then the AI takes over — forever.
+            Three steps. Then the AI takes over, forever.
           </p>
           <div className="grid sm:grid-cols-3 gap-8">
             {[
@@ -85,7 +85,7 @@ export default function HomePage() {
                 icon: <CalendarClock className="w-6 h-6 text-emerald-600" />,
                 step: '2',
                 title: 'AI generates your week\'s content',
-                desc: '3 social posts and a full email newsletter — written in your brand voice, ready to publish.',
+                desc: '3 social posts and a full email newsletter, written in your brand voice, ready to publish.',
               },
               {
                 icon: <Mail className="w-6 h-6 text-emerald-600" />,
@@ -118,7 +118,7 @@ export default function HomePage() {
                 'Weekly email newsletter to your subscribers',
                 'Facebook & Instagram caption drafts',
                 'Tailored to your promotions and seasonality',
-                'Written in your brand voice — sounds human',
+                'Written in your brand voice, sounds human',
                 'Full activity log of every AI action',
                 'Subscriber management dashboard',
                 'Update promotions anytime from your dashboard',
@@ -204,7 +204,7 @@ export default function HomePage() {
           <TrendingUp className="w-10 h-10 text-emerald-600 mx-auto mb-6" />
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to stop worrying about marketing?</h2>
           <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-            See your AI-generated content in under 2 minutes. No account, no credit card — just your business info.
+            See your AI-generated content in under 2 minutes. No account, no credit card, just your business info.
           </p>
           <Link href="/setup" className="btn-primary text-base py-3 px-10">
             Preview my content free

@@ -70,7 +70,7 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
     data: {
       businessId,
       action: 'subscription_activated',
-      summary: 'Pro subscription activated — weekly AI content delivery enabled',
+      summary: 'Pro subscription activated: weekly AI content delivery enabled',
     },
   })
 }

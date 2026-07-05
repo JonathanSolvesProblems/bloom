@@ -27,7 +27,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
         setState('error')
       }
     } catch {
-      setMessage('Could not connect — please try again')
+      setMessage('Could not connect, please try again')
       setState('error')
     }
   }
@@ -50,7 +50,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">You&apos;re subscribed!</h2>
             <p className="text-gray-500 text-sm">
-              Look out for our next newsletter — it arrives every Monday morning.
+              Look out for our next newsletter, it arrives every Monday morning.
             </p>
           </div>
         ) : (
@@ -91,7 +91,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
         )}
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Powered by <span className="text-emerald-600 font-medium">Bloom</span> — AI marketing for local businesses
+          Powered by <span className="text-emerald-600 font-medium">Bloom</span>, AI marketing for local businesses
         </p>
       </div>
     </div>

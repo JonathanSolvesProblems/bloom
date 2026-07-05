@@ -28,9 +28,9 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
       .then((r) => r.json())
       .then((d) => {
         if (d.content) setContent(d.content)
-        else setError('Failed to generate content — please try again')
+        else setError('Failed to generate content, please try again')
       })
-      .catch(() => setError('Failed to generate content — please try again'))
+      .catch(() => setError('Failed to generate content, please try again'))
       .finally(() => setLoading(false))
   }, [businessId])
 
@@ -79,7 +79,7 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Your week&apos;s content is ready</h1>
               <p className="text-gray-500">
-                Here&apos;s what Bloom would publish and send for you every week — automatically.
+                Here&apos;s what Bloom would publish and send for you every week, automatically.
               </p>
             </div>
 
@@ -139,14 +139,14 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
             <div className="bg-emerald-600 rounded-xl p-8 text-center text-white">
               <h2 className="text-2xl font-bold mb-2">This is what Bloom delivers every single week</h2>
               <p className="text-emerald-100 mb-6 max-w-md mx-auto">
-                Activate your subscription to get this content generated and sent automatically — every Monday, without lifting a finger.
+                Activate your subscription to get this content generated and sent automatically every Monday, without lifting a finger.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href={`/api/checkout?businessId=${businessId}`}
                   className="bg-white text-emerald-700 font-semibold py-3 px-8 rounded-lg hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
                 >
-                  Activate — $99/month
+                  Activate for $99/month
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link

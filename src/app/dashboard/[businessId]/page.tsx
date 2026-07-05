@@ -60,7 +60,7 @@ export default async function DashboardPage({
                 href={`/api/checkout?businessId=${businessId}`}
                 className="btn-primary text-sm py-2 px-4"
               >
-                Activate — $99/mo <ArrowRight className="w-3.5 h-3.5" />
+                Activate for $99/mo <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -75,7 +75,7 @@ export default async function DashboardPage({
             <div className="flex-1">
               <p className="font-semibold text-amber-900">Auto-delivery is not active yet</p>
               <p className="text-sm text-amber-700 mt-1">
-                Upgrade to Pro and Bloom will generate and send your content every Monday — automatically.
+                Upgrade to Pro and Bloom will generate and send your content every Monday, automatically.
               </p>
             </div>
             <Link href={`/api/checkout?businessId=${businessId}`} className="btn-primary text-sm py-2 px-4 shrink-0">

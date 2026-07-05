@@ -100,7 +100,7 @@ export default function SetupPage() {
       const { businessId } = await res.json()
       router.push(`/preview/${businessId}`)
     } catch {
-      setErrors({ ownerEmail: 'Something went wrong — please try again' })
+      setErrors({ ownerEmail: 'Something went wrong, please try again' })
       setLoading(false)
     }
   }
@@ -202,7 +202,7 @@ export default function SetupPage() {
           {step === 2 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-900">Your brand voice</h2>
-              <p className="text-gray-500 text-sm">Bloom writes in a voice that sounds like you — not like a robot.</p>
+              <p className="text-gray-500 text-sm">Bloom writes in a voice that sounds like you, not like a robot.</p>
 
               <div>
                 <label className="label">Brand voice</label>
@@ -275,7 +275,7 @@ export default function SetupPage() {
               </div>
 
               <div className="bg-emerald-50 rounded-lg p-4 text-sm text-emerald-800">
-                <strong>What happens next:</strong> Bloom will generate a preview of your week&apos;s content — 3 social posts + a newsletter draft — instantly. No credit card needed to see it.
+                <strong>What happens next:</strong> Bloom will generate a preview of your week&apos;s content (3 social posts + a newsletter draft) instantly. No credit card needed to see it.
               </div>
             </div>
           )}

@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Bloom — AI Marketing for Local Businesses',
+  title: 'Bloom: AI Marketing for Local Businesses',
   description:
-    'Your AI marketing team. Bloom writes and sends weekly posts, newsletters, and updates for your local business — automatically.',
+    'Your AI marketing team. Bloom writes and sends weekly posts, newsletters, and updates for your local business, automatically.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

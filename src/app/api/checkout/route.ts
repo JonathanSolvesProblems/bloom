@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'Bloom Pro — AI Marketing Agent',
-            description: 'Weekly AI-generated social posts, newsletter, and Google updates — delivered automatically.',
+            name: 'Bloom Pro: AI Marketing Agent',
+            description: 'Weekly AI-generated social posts, newsletter, and Google updates, delivered automatically.',
           },
           unit_amount: 9900,
           recurring: { interval: 'month' },

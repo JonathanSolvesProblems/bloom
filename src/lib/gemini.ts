@@ -41,9 +41,9 @@ BUSINESS PROFILE:
 - City: ${business.city}
 - Description: ${business.description}
 - Brand voice: ${business.brandVoice} (${voiceDesc})
-- This week's promotions / news: ${business.promotions || 'Nothing specific — highlight quality, service, and community'}
+- This week's promotions / news: ${business.promotions || 'Nothing specific: highlight quality, service, and community'}
 
-TASK: Create this week's marketing content. Make it sound authentically human — NOT like AI wrote it.
+TASK: Create this week's marketing content. Make it sound authentically human, NOT like AI wrote it.
 
 Return a JSON object with exactly these keys:
 
