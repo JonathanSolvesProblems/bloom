@@ -4,6 +4,10 @@ Bloom is an AI marketing agent for local businesses. Every Monday it writes a fu
 
 I built Bloom because most local businesses (salons, cafes, gyms, clinics) know they should post and email their customers regularly but never find the time. Bloom does the writing and the sending so they can get back to running the business.
 
+## Demo
+
+Live app: **https://bloom.vercel.app**. Enter a business in three steps and Bloom generates a real content preview on the spot, no signup or credit card required.
+
 ## How it works
 
 1. **Set up once.** The owner enters their business details, picks a brand voice, and adds their contact info. Three short steps, no credit card.
