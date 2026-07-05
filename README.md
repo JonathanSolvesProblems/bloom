@@ -6,7 +6,7 @@ I built Bloom because most local businesses (salons, cafes, gyms, clinics) know 
 
 ## Demo
 
-Live app: **https://bloom.vercel.app**. Enter a business in three steps and Bloom generates a real content preview on the spot, no signup or credit card required.
+Live app: **https://bloom-six-theta.vercel.app**. Enter a business in three steps and Bloom generates a real content preview on the spot, no signup or credit card required.
 
 ## How it works
 
