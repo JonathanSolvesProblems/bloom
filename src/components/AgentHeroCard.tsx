@@ -40,7 +40,7 @@ export default function AgentHeroCard() {
   const complete = chars >= line.text.length
 
   return (
-    <div className="relative rounded-2xl border border-border bg-white/70 backdrop-blur-md shadow-xl p-5 sm:p-6">
+    <div className="glass relative rounded-2xl shadow-xl p-5 sm:p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-accent-coral/80" />

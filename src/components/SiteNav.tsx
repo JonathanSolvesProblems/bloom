@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import ThemeToggle from './ThemeToggle'
 
 function BloomMark() {
   return (
@@ -33,7 +34,9 @@ export default function SiteNav() {
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-200 ${
-        scrolled ? 'bg-white/70 backdrop-blur-md border-b border-border shadow-sm' : 'bg-transparent border-b border-transparent'
+        scrolled
+          ? 'bg-[var(--glass)] backdrop-blur-md border-b border-border shadow-sm'
+          : 'bg-transparent border-b border-transparent'
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
@@ -51,6 +54,7 @@ export default function SiteNav() {
           <a href="#pricing" className="text-sm text-muted hover:text-foreground transition-colors hidden sm:block">
             Pricing
           </a>
+          <ThemeToggle />
           <Link href="/setup" className="btn-primary text-sm py-2 px-4">
             Get started
           </Link>

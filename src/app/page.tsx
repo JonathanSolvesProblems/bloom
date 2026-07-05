@@ -14,6 +14,14 @@ import {
   Camera,
   ThumbsUp,
   MapPin,
+  Coffee,
+  Scissors,
+  Dumbbell,
+  Wrench,
+  ShoppingBag,
+  Stethoscope,
+  Building2,
+  PawPrint,
 } from 'lucide-react'
 import SiteNav from '@/components/SiteNav'
 import AgentHeroCard from '@/components/AgentHeroCard'
@@ -28,14 +36,14 @@ const stats = [
 ]
 
 const industries = [
-  { emoji: '☕', label: 'Cafés & Restaurants' },
-  { emoji: '💆', label: 'Salons & Spas' },
-  { emoji: '🏋️', label: 'Gyms & Fitness' },
-  { emoji: '🔧', label: 'Contractors & Trades' },
-  { emoji: '🛍️', label: 'Retail & Boutiques' },
-  { emoji: '🦷', label: 'Dental & Health' },
-  { emoji: '🏡', label: 'Real Estate' },
-  { emoji: '🐾', label: 'Pet Services' },
+  { icon: Coffee, label: 'Cafés & Restaurants' },
+  { icon: Scissors, label: 'Salons & Spas' },
+  { icon: Dumbbell, label: 'Gyms & Fitness' },
+  { icon: Wrench, label: 'Contractors & Trades' },
+  { icon: ShoppingBag, label: 'Retail & Boutiques' },
+  { icon: Stethoscope, label: 'Dental & Health' },
+  { icon: Building2, label: 'Real Estate' },
+  { icon: PawPrint, label: 'Pet Services' },
 ]
 
 const steps = [
@@ -97,7 +105,7 @@ export default function HomePage() {
           <div className="aurora" />
           <div className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur border border-border text-foreground text-sm font-medium px-3.5 py-1.5 rounded-full mb-6">
+              <div className="glass inline-flex items-center gap-2 text-foreground text-sm font-medium px-3.5 py-1.5 rounded-full mb-6">
                 <Sparkles className="w-4 h-4 text-brand-teal" />
                 AI marketing agent for local businesses
               </div>
@@ -151,9 +159,9 @@ export default function HomePage() {
               {[...industries, ...industries].map((it, i) => (
                 <span
                   key={i}
-                  className="shrink-0 inline-flex items-center gap-2 bg-white border border-border rounded-full px-4 py-2 text-sm text-foreground font-medium"
+                  className="shrink-0 inline-flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 text-sm text-foreground font-medium"
                 >
-                  <span className="text-lg">{it.emoji}</span>
+                  <it.icon className="w-4 h-4 text-brand-teal" />
                   {it.label}
                 </span>
               ))}

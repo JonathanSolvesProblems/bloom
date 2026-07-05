@@ -4,8 +4,11 @@
   --background: #ffffff;
   --foreground: #0b1b14;
   --surface: #fbfaf7;
+  --card: #ffffff;
   --muted: #5b6b62;
   --border: #ece9e4;
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-border: #ece9e4;
 
   --primary: #059669;
   --primary-dark: #047857;
@@ -27,10 +30,23 @@
     radial-gradient(50% 60% at 60% 90%, color-mix(in oklab, #fdba8c 30%, transparent), transparent 60%);
 }
 
+[data-theme="dark"] {
+  --background: #071410;
+  --foreground: #e9f2ec;
+  --surface: #0c1c16;
+  --card: #0f2019;
+  --muted: #8fa69b;
+  --border: #1e352c;
+  --glass: rgba(15, 32, 25, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --ink-dark: #0e211a;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-card: var(--card);
   --color-muted: var(--muted);
   --color-border: var(--border);
 
@@ -54,16 +70,32 @@
   --font-mono: var(--font-geist);
 }
 
+html {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3 {
   font-family: var(--font-display), var(--font-sans), sans-serif;
   letter-spacing: -0.02em;
+}
+
+/* ---------- Glass ---------- */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
 }
 
 /* ---------- Buttons ---------- */
@@ -90,7 +122,7 @@ h1, h2, h3 {
 .btn-outline {
   border: 1.5px solid var(--border);
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--glass);
   padding: 0.75rem 1.5rem;
   border-radius: 0.625rem;
   font-weight: 500;
@@ -103,13 +135,12 @@ h1, h2, h3 {
 }
 .btn-outline:hover {
   border-color: var(--brand-teal);
-  background: #fff;
   transform: translateY(-1px);
 }
 
 /* ---------- Cards ---------- */
 .card {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -121,7 +152,7 @@ h1, h2, h3 {
 .card-hover:hover {
   transform: translateY(-4px);
   border-color: color-mix(in oklab, var(--brand-teal) 40%, transparent);
-  box-shadow: 0 8px 32px rgba(11, 27, 20, 0.1);
+  box-shadow: 0 8px 32px rgba(11, 27, 20, 0.12);
 }
 
 /* ---------- Form ---------- */
@@ -132,7 +163,7 @@ h1, h2, h3 {
   border-radius: 0.5rem;
   font-size: 0.95rem;
   color: var(--foreground);
-  background: #fff;
+  background: var(--card);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -148,7 +179,7 @@ h1, h2, h3 {
 }
 .error-text {
   font-size: 0.8rem;
-  color: #dc2626;
+  color: #ef4444;
   margin-top: 0.25rem;
 }
 

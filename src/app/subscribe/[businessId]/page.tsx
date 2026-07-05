@@ -33,28 +33,28 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Stay in the loop</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground mb-2">Stay in the loop</h1>
+          <p className="text-muted">
             Subscribe to get our weekly newsletter delivered straight to your inbox.
           </p>
         </div>
 
         {state === 'success' ? (
-          <div className="card bg-white text-center py-10">
+          <div className="card bg-card text-center py-10">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">You&apos;re subscribed!</h2>
-            <p className="text-gray-500 text-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-2">You&apos;re subscribed!</h2>
+            <p className="text-muted text-sm">
               Look out for our next newsletter, it arrives every Monday morning.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="card bg-white space-y-4">
+          <form onSubmit={handleSubmit} className="card bg-card space-y-4">
             <div>
               <label className="label">Your email address</label>
               <input
@@ -84,13 +84,13 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
                 'Subscribe to newsletter'
               )}
             </button>
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-muted text-center">
               Unsubscribe anytime. We never share your email.
             </p>
           </form>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-muted mt-6">
           Powered by <span className="text-emerald-600 font-medium">Bloom</span>, AI marketing for local businesses
         </p>
       </div>

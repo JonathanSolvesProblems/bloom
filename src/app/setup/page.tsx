@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Sparkles, ArrowLeft, ArrowRight, Loader2, Check } from 'lucide-react'
 import { z } from 'zod'
 
 const BUSINESS_TYPES = [
@@ -108,18 +108,18 @@ export default function SetupPage() {
   const steps = ['Business info', 'Brand voice', 'Your details']
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-100 bg-white px-6 py-4">
+      <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Link href="/" className="text-gray-400 hover:text-gray-600">
+          <Link href="/" className="text-muted hover:text-muted">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-emerald-600 rounded-md flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-semibold text-gray-900">Bloom</span>
+            <span className="font-semibold text-foreground">Bloom</span>
           </div>
         </div>
       </header>
@@ -135,25 +135,25 @@ export default function SetupPage() {
                     ? 'bg-emerald-600 text-white'
                     : i + 1 === step
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-200 text-gray-400'
+                    : 'bg-border text-muted'
                 }`}
               >
-                {i + 1 < step ? '✓' : i + 1}
+                {i + 1 < step ? <Check className="w-4 h-4" /> : i + 1}
               </div>
-              <span className={`text-sm ${i + 1 === step ? 'text-gray-900 font-medium' : 'text-gray-400'} hidden sm:block`}>
+              <span className={`text-sm ${i + 1 === step ? 'text-foreground font-medium' : 'text-muted'} hidden sm:block`}>
                 {label}
               </span>
-              {i < steps.length - 1 && <div className="flex-1 h-px bg-gray-200" />}
+              {i < steps.length - 1 && <div className="flex-1 h-px bg-border" />}
             </div>
           ))}
         </div>
 
-        <div className="card bg-white">
+        <div className="card bg-card">
           {/* Step 1: Business Info */}
           {step === 1 && (
             <div className="space-y-5">
-              <h2 className="text-2xl font-bold text-gray-900">Tell us about your business</h2>
-              <p className="text-gray-500 text-sm">This is how Bloom learns your voice and creates content that fits your brand.</p>
+              <h2 className="text-2xl font-bold text-foreground">Tell us about your business</h2>
+              <p className="text-muted text-sm">This is how Bloom learns your voice and creates content that fits your brand.</p>
 
               <div>
                 <label className="label">Business name</label>
@@ -201,8 +201,8 @@ export default function SetupPage() {
           {/* Step 2: Brand Voice + Promotions */}
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Your brand voice</h2>
-              <p className="text-gray-500 text-sm">Bloom writes in a voice that sounds like you, not like a robot.</p>
+              <h2 className="text-2xl font-bold text-foreground">Your brand voice</h2>
+              <p className="text-muted text-sm">Bloom writes in a voice that sounds like you, not like a robot.</p>
 
               <div>
                 <label className="label">Brand voice</label>
@@ -212,8 +212,8 @@ export default function SetupPage() {
                       key={value}
                       className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                         form.brandVoice === value
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-emerald-500 bg-brand-emerald/10'
+                          : 'border-border hover:border-border'
                       }`}
                     >
                       <input
@@ -225,8 +225,8 @@ export default function SetupPage() {
                         className="accent-emerald-600"
                       />
                       <div>
-                        <div className="font-medium text-sm text-gray-900">{label}</div>
-                        <div className="text-xs text-gray-500">{desc}</div>
+                        <div className="font-medium text-sm text-foreground">{label}</div>
+                        <div className="text-xs text-muted">{desc}</div>
                       </div>
                     </label>
                   ))}
@@ -235,7 +235,7 @@ export default function SetupPage() {
               </div>
 
               <div>
-                <label className="label">This week&apos;s promotions or news <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="label">This week&apos;s promotions or news <span className="text-muted font-normal">(optional)</span></label>
                 <textarea
                   className="input"
                   style={{ minHeight: 100, resize: 'vertical' }}
@@ -243,7 +243,7 @@ export default function SetupPage() {
                   value={form.promotions}
                   onChange={(e) => set('promotions', e.target.value)}
                 />
-                <p className="text-xs text-gray-400 mt-1">You can update this every week from your dashboard.</p>
+                <p className="text-xs text-muted mt-1">You can update this every week from your dashboard.</p>
               </div>
             </div>
           )}
@@ -251,8 +251,8 @@ export default function SetupPage() {
           {/* Step 3: Owner Details */}
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-2xl font-bold text-gray-900">Almost done</h2>
-              <p className="text-gray-500 text-sm">
+              <h2 className="text-2xl font-bold text-foreground">Almost done</h2>
+              <p className="text-muted text-sm">
                 We&apos;ll send your AI-generated content preview to this email, plus your dashboard link.
               </p>
 
@@ -274,14 +274,14 @@ export default function SetupPage() {
                 {errors.ownerEmail && <p className="error-text">{errors.ownerEmail}</p>}
               </div>
 
-              <div className="bg-emerald-50 rounded-lg p-4 text-sm text-emerald-800">
+              <div className="bg-brand-emerald/10 rounded-lg p-4 text-sm text-emerald-800">
                 <strong>What happens next:</strong> Bloom will generate a preview of your week&apos;s content (3 social posts + a newsletter draft) instantly. No credit card needed to see it.
               </div>
             </div>
           )}
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
             {step > 1 ? (
               <button onClick={() => setStep((s) => s - 1)} className="btn-outline text-sm py-2 px-4">
                 <ArrowLeft className="w-4 h-4" /> Back
