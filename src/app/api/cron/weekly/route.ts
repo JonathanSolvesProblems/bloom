@@ -3,6 +3,8 @@ import { db } from '@/lib/db'
 import { generateWeeklyContent } from '@/lib/gemini'
 import { Resend } from 'resend'
 
+export const maxDuration = 60
+
 function getMondayOf(date: Date): string {
   const d = new Date(date)
   const day = d.getDay()
@@ -30,13 +32,12 @@ export async function GET(request: NextRequest) {
 
   for (const business of businesses) {
     try {
-      const existing = await db.weeklyContent.findFirst({
+      let content = await db.weeklyContent.findFirst({
         where: { businessId: business.id, weekOf },
       })
 
-      let content = existing
       if (!content) {
-        const result = await generateWeeklyContent({
+        const c = await generateWeeklyContent({
           name: business.name,
           type: business.type,
           city: business.city,
@@ -45,15 +46,25 @@ export async function GET(request: NextRequest) {
           promotions: business.promotions,
         })
 
+        const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
+
         content = await db.weeklyContent.create({
           data: {
             businessId: business.id,
             weekOf,
-            post1: result.post1,
-            post2: result.post2,
-            post3: result.post3,
-            newsletterSubject: result.newsletterSubject,
-            newsletterHtml: result.newsletterHtml,
+            post1: c.post1,
+            post2: c.post2,
+            post3: c.post3,
+            newsletterSubject: c.newsletterSubject,
+            newsletterHtml: c.newsletterHtml,
+            weeklyTheme: c.weeklyTheme,
+            featuredPromotion: c.featuredPromotion,
+            subjectVariants: JSON.stringify(c.subjectVariants),
+            reasoning: c.reasoning,
+            qaScore: c.qaScore,
+            model: c.model,
+            tokensUsed: c.tokensUsed,
+            latencyMs: c.latencyMs,
           },
         })
 
@@ -61,10 +72,43 @@ export async function GET(request: NextRequest) {
           data: {
             businessId: business.id,
             action: 'generated_content',
-            summary: `Auto-generated weekly content for week of ${weekOf}`,
-            details: JSON.stringify({ weekOf, newsletterSubject: result.newsletterSubject }),
+            summary: `Wrote 3 posts + newsletter. Theme: ${c.weeklyTheme || 'weekly update'}`.slice(0, 200),
+            details: JSON.stringify({
+              weekOf,
+              weeklyTheme: c.weeklyTheme,
+              featuredPromotion: c.featuredPromotion,
+              chosenSubject: c.chosenSubject,
+              subjectVariants: c.subjectVariants,
+              reasoning: c.reasoning,
+              model: c.model,
+              tokensUsed: c.tokensUsed,
+              latencyMs: c.latencyMs,
+            }),
           },
         })
+
+        if (!ownerGavePromo && c.featuredPromotion) {
+          await db.agentLog.create({
+            data: {
+              businessId: business.id,
+              action: 'decided_promotion',
+              summary: `Chose this week's angle: ${c.featuredPromotion}`.slice(0, 200),
+              details: JSON.stringify({ weekOf, featuredPromotion: c.featuredPromotion, reasoning: c.reasoning }),
+            },
+          })
+        }
+
+        if (c.qaScore !== null) {
+          await db.agentLog.create({
+            data: {
+              businessId: business.id,
+              action: 'qa_review',
+              summary: `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
+              details: JSON.stringify({ weekOf, qaScore: c.qaScore, qaNotes: c.qaNotes, model: c.model }),
+            },
+          })
+        }
+
         generated++
       }
 
@@ -96,7 +140,7 @@ export async function GET(request: NextRequest) {
           data: {
             businessId: business.id,
             action: 'sent_newsletter',
-            summary: `Sent newsletter to ${emailList.length} subscribers for week of ${weekOf}`,
+            summary: `Emailed newsletter to ${emailList.length} subscribers`,
             details: JSON.stringify({ weekOf, recipients: emailList.length, subject: content.newsletterSubject }),
           },
         })
@@ -106,6 +150,18 @@ export async function GET(request: NextRequest) {
       const msg = err instanceof Error ? err.message : String(err)
       errors.push(`${business.name}: ${msg}`)
       console.error(`Failed for business ${business.id}:`, err)
+      try {
+        await db.agentLog.create({
+          data: {
+            businessId: business.id,
+            action: 'agent_error',
+            summary: `Weekly run failed: ${msg}`.slice(0, 200),
+            details: JSON.stringify({ weekOf, error: msg }),
+          },
+        })
+      } catch {
+        /* logging must never crash the run */
+      }
     }
   }
 

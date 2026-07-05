@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { generateWeeklyContent } from '@/lib/gemini'
 
+export const maxDuration = 60
+
 const schema = z.object({ businessId: z.string().cuid() })
 
 function getMondayOf(date: Date): string {
@@ -19,17 +21,14 @@ export async function POST(request: NextRequest) {
     const { businessId } = schema.parse(body)
 
     const business = await db.business.findUniqueOrThrow({ where: { id: businessId } })
-
     const weekOf = getMondayOf(new Date())
 
-    const existing = await db.weeklyContent.findFirst({
-      where: { businessId, weekOf },
-    })
+    const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
     if (existing) {
       return Response.json({ content: existing })
     }
 
-    const content = await generateWeeklyContent({
+    const c = await generateWeeklyContent({
       name: business.name,
       type: business.type,
       city: business.city,
@@ -38,15 +37,25 @@ export async function POST(request: NextRequest) {
       promotions: business.promotions,
     })
 
+    const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
+
     const saved = await db.weeklyContent.create({
       data: {
         businessId,
         weekOf,
-        post1: content.post1,
-        post2: content.post2,
-        post3: content.post3,
-        newsletterSubject: content.newsletterSubject,
-        newsletterHtml: content.newsletterHtml,
+        post1: c.post1,
+        post2: c.post2,
+        post3: c.post3,
+        newsletterSubject: c.newsletterSubject,
+        newsletterHtml: c.newsletterHtml,
+        weeklyTheme: c.weeklyTheme,
+        featuredPromotion: c.featuredPromotion,
+        subjectVariants: JSON.stringify(c.subjectVariants),
+        reasoning: c.reasoning,
+        qaScore: c.qaScore,
+        model: c.model,
+        tokensUsed: c.tokensUsed,
+        latencyMs: c.latencyMs,
       },
     })
 
@@ -54,10 +63,42 @@ export async function POST(request: NextRequest) {
       data: {
         businessId,
         action: 'generated_content',
-        summary: `Generated weekly content for week of ${weekOf}`,
-        details: JSON.stringify({ weekOf, newsletterSubject: content.newsletterSubject }),
+        summary: `Wrote 3 posts + newsletter. Theme: ${c.weeklyTheme || 'weekly update'}`.slice(0, 200),
+        details: JSON.stringify({
+          weekOf,
+          weeklyTheme: c.weeklyTheme,
+          featuredPromotion: c.featuredPromotion,
+          chosenSubject: c.chosenSubject,
+          subjectVariants: c.subjectVariants,
+          reasoning: c.reasoning,
+          model: c.model,
+          tokensUsed: c.tokensUsed,
+          latencyMs: c.latencyMs,
+        }),
       },
     })
+
+    if (!ownerGavePromo && c.featuredPromotion) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'decided_promotion',
+          summary: `Chose this week's angle: ${c.featuredPromotion}`.slice(0, 200),
+          details: JSON.stringify({ weekOf, featuredPromotion: c.featuredPromotion, reasoning: c.reasoning }),
+        },
+      })
+    }
+
+    if (c.qaScore !== null) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'qa_review',
+          summary: `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
+          details: JSON.stringify({ weekOf, qaScore: c.qaScore, qaNotes: c.qaNotes, model: c.model }),
+        },
+      })
+    }
 
     return Response.json({ content: saved })
   } catch (err) {

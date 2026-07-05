@@ -211,6 +211,12 @@ export default function HomePage() {
                   A scheduled agent fires every Monday with no human in the loop. It writes the week, sends the newsletter,
                   and records every step. This is a typical run.
                 </p>
+                <Link
+                  href="/agent"
+                  className="inline-flex items-center gap-1.5 text-brand-emerald hover:text-white transition-colors mt-4 text-sm font-medium"
+                >
+                  View the live agent feed <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </Reveal>
 

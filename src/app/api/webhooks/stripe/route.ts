@@ -95,4 +95,16 @@ async function handleCancellation(event: Stripe.Event) {
     where: { id: business.id },
     data: { subscriptionStatus: 'inactive', tier: 'free' },
   })
+
+  await db.agentLog.create({
+    data: {
+      businessId: business.id,
+      action: 'paused_delivery',
+      summary:
+        event.type === 'invoice.payment_failed'
+          ? 'Delivery paused: payment failed'
+          : 'Delivery paused: subscription cancelled',
+      details: JSON.stringify({ reason: event.type }),
+    },
+  })
 }

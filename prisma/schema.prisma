@@ -53,6 +53,15 @@ model WeeklyContent {
   newsletterSent    Boolean   @default(false)
   newsletterSentAt  DateTime?
   subscriberCount   Int       @default(0)
+  // Agent decision record + run evidence
+  weeklyTheme       String?
+  featuredPromotion String?
+  subjectVariants   String?
+  reasoning         String?
+  qaScore           Int?
+  model             String?
+  tokensUsed        Int?
+  latencyMs         Int?
 }
 
 model AgentLog {
