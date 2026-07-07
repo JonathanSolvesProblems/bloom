@@ -24,7 +24,12 @@ export async function POST(request: NextRequest) {
     const business = await db.business.findUniqueOrThrow({ where: { id: businessId } })
     const weekOf = getMondayOf(new Date())
 
-    const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
+    // Free preview is one-time per business (cost control): reuse the sample they
+    // already got. Paying (active) businesses regenerate fresh content each week.
+    const existing =
+      business.subscriptionStatus === 'active'
+        ? await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
+        : await db.weeklyContent.findFirst({ where: { businessId }, orderBy: { createdAt: 'desc' } })
     if (existing) {
       return Response.json({ content: existing })
     }
