@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
 const schema = z.object({
   name: z.string().min(1).max(100),
@@ -23,6 +24,13 @@ export async function POST(request: NextRequest) {
     const existing = await db.business.findUnique({ where: { ownerEmail: data.ownerEmail } })
     if (existing) {
       return Response.json({ businessId: existing.id })
+    }
+
+    if (!(await allowRequest(request, 'business', LIMITS.business))) {
+      return Response.json(
+        { error: 'Too many signups from your network today. Please try again tomorrow.' },
+        { status: 429 }
+      )
     }
 
     const business = await db.business.create({ data })

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { generateWeeklyContent } from '@/lib/gemini'
+import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
 export const maxDuration = 60
 
@@ -26,6 +27,14 @@ export async function POST(request: NextRequest) {
     const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
     if (existing) {
       return Response.json({ content: existing })
+    }
+
+    // Only real (paid) generations past this point are rate limited.
+    if (!(await allowRequest(request, 'generate', LIMITS.generate))) {
+      return Response.json(
+        { error: 'Too many previews from your network today. Please try again tomorrow.' },
+        { status: 429 }
+      )
     }
 
     const c = await generateWeeklyContent({
