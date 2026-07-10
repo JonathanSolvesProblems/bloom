@@ -17,6 +17,15 @@ const BUSINESS_TYPES = [
   'Other',
 ]
 
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Français" },
+  { value: "es", label: "Español" },
+  { value: "pt", label: "Português" },
+  { value: "it", label: "Italiano" },
+  { value: "de", label: "Deutsch" },
+]
+
 const BRAND_VOICES = [
   { value: 'friendly', label: 'Friendly & warm', desc: 'Approachable and conversational' },
   { value: 'professional', label: 'Professional', desc: 'Polished and authoritative' },
@@ -33,6 +42,7 @@ type FormData = {
   country: string
   description: string
   brandVoice: string
+  contentLanguage: string
   promotions: string
   ownerName: string
   ownerEmail: string
@@ -53,6 +63,7 @@ export default function SetupPage() {
     country: 'CA',
     description: '',
     brandVoice: 'friendly',
+    contentLanguage: 'en',
     promotions: '',
     ownerName: '',
     ownerEmail: '',
@@ -212,6 +223,24 @@ export default function SetupPage() {
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-foreground">Your brand voice</h2>
               <p className="text-muted text-sm">Bloom writes in a voice that sounds like you, not like a robot.</p>
+
+              <div>
+                <label className="label">Content language</label>
+                <select
+                  className="input"
+                  value={form.contentLanguage}
+                  onChange={(e) => set('contentLanguage', e.target.value)}
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted mt-1.5">
+                  Your posts and newsletter are written natively in this language, not translated.
+                </p>
+              </div>
 
               <div>
                 <label className="label">Brand voice</label>

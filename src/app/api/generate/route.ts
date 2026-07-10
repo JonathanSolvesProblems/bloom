@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       description: business.description,
       brandVoice: business.brandVoice,
       promotions: business.promotions,
+      contentLanguage: business.contentLanguage,
     }
 
     // Keep the interactive preview fast: never rewrite inside the request.

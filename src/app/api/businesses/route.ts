@@ -11,6 +11,7 @@ const schema = z.object({
   country: z.string().max(3).default('CA'),
   description: z.string().min(10).max(1000),
   brandVoice: z.enum(['friendly', 'professional', 'casual', 'bold', 'elegant']).default('friendly'),
+  contentLanguage: z.enum(['en', 'fr', 'es', 'pt', 'it', 'de']).default('en'),
   promotions: z.string().max(500).optional(),
   ownerName: z.string().min(1).max(100),
   ownerEmail: z.string().email(),

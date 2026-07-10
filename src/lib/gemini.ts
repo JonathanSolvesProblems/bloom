@@ -134,6 +134,16 @@ const VOICE_GUIDE: Record<string, string> = {
   elegant: 'refined, sophisticated, evocative language, no hard sells',
 }
 
+/** LTR languages only. RTL would need a dir="rtl" email template; out of scope. */
+export const LANGUAGES: Record<string, string> = {
+  en: 'English',
+  fr: 'French (Français)',
+  es: 'Spanish (Español)',
+  pt: 'Portuguese (Português)',
+  it: 'Italian (Italiano)',
+  de: 'German (Deutsch)',
+}
+
 type Business = {
   name: string
   type: string
@@ -141,6 +151,7 @@ type Business = {
   description: string
   brandVoice: string
   promotions?: string | null
+  contentLanguage?: string | null
 }
 
 type Draft = {
@@ -158,9 +169,21 @@ type Draft = {
 
 const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : fallback)
 
+function languageName(business: Business): string {
+  const code = (business.contentLanguage || 'en').toLowerCase()
+  return LANGUAGES[code] ?? 'English'
+}
+
 function buildPrompt(business: Business, priorWeek: PriorWeek | null, critique: string | null): string {
   const voiceDesc = VOICE_GUIDE[business.brandVoice] ?? 'friendly and approachable'
   const hasPromo = !!business.promotions && business.promotions.trim().length > 0
+  const code = (business.contentLanguage || 'en').toLowerCase()
+  const lang = languageName(business)
+
+  const language =
+    code === 'en'
+      ? ''
+      : `\nLANGUAGE: Write every field natively in ${lang}. Do NOT write in English and translate. Write as a ${lang}-speaking local marketer would, with correct accents, idiom, and punctuation conventions. This includes the posts, all subject lines, the newsletter HTML body, and also weeklyTheme, featuredPromotion and reasoning, because the owner reads those too.`
 
   const memory =
     priorWeek && (priorWeek.weeklyTheme || priorWeek.chosenSubject)
@@ -183,7 +206,7 @@ BUSINESS PROFILE:
 - City: ${business.city}
 - Description: ${business.description}
 - Brand voice: ${business.brandVoice} (${voiceDesc})
-- This week's promotions / news from the owner: ${hasPromo ? business.promotions : 'NONE PROVIDED, so YOU decide the smartest angle to feature this week based on the business type, the season, and the current date.'}${memory}${retry}
+- This week's promotions / news from the owner: ${hasPromo ? business.promotions : 'NONE PROVIDED, so YOU decide the smartest angle to feature this week based on the business type, the season, and the current date.'}${language}${memory}${retry}
 
 DECIDE AND CREATE this week's marketing. Return a JSON object with exactly these keys:
 
@@ -227,7 +250,7 @@ async function review(
   business: Business
 ): Promise<{ score: number | null; notes: string; tokens: number; failed: boolean }> {
   try {
-    const qaPrompt = `You are a strict marketing QA reviewer. Judge this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice AS A SET, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70.
+    const qaPrompt = `You are a strict marketing QA reviewer and a native ${languageName(business)} speaker. The drafts below are written in ${languageName(business)}; judge them in that language and never penalise them for not being English. Judge this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice AS A SET, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70.
 
 DRAFTS:
 - Post 1: ${draft.post1}

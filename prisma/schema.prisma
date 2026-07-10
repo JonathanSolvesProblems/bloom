@@ -17,6 +17,8 @@ model Business {
   country              String          @default("CA")
   description          String
   brandVoice           String          @default("friendly")
+  // Language the agent writes the customer-facing content in (ISO 639-1).
+  contentLanguage      String          @default("en")
   promotions           String?
   ownerEmail           String          @unique
   ownerName            String

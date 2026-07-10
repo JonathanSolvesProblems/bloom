@@ -9,6 +9,7 @@ type BusinessProfile = {
   description: string
   brandVoice: string
   promotions?: string | null
+  contentLanguage?: string | null
 }
 
 /**
@@ -146,12 +147,24 @@ async function sendBatchWithRetry(
   return []
 }
 
-function withUnsubscribe(html: string, unsubUrl: string, businessName: string): string {
+// A French newsletter ending in an English "Unsubscribe" reads as machine output,
+// and in Quebec the commercial communication is expected to be in French.
+const UNSUB_COPY: Record<string, { line: (b: string) => string; link: string }> = {
+  en: { line: (b) => `You are receiving this because you subscribed to updates from ${b}.`, link: 'Unsubscribe' },
+  fr: { line: (b) => `Vous recevez ce courriel parce que vous êtes abonné aux nouvelles de ${b}.`, link: 'Se désabonner' },
+  es: { line: (b) => `Recibes este correo porque te suscribiste a las novedades de ${b}.`, link: 'Cancelar suscripción' },
+  pt: { line: (b) => `Você recebe este e-mail porque se inscreveu nas novidades de ${b}.`, link: 'Cancelar inscrição' },
+  it: { line: (b) => `Ricevi questa email perché ti sei iscritto agli aggiornamenti di ${b}.`, link: 'Annulla iscrizione' },
+  de: { line: (b) => `Du erhältst diese E-Mail, weil du Neuigkeiten von ${b} abonniert hast.`, link: 'Abmelden' },
+}
+
+function withUnsubscribe(html: string, unsubUrl: string, businessName: string, lang?: string | null): string {
+  const copy = UNSUB_COPY[(lang || 'en').toLowerCase()] ?? UNSUB_COPY.en
   return `${html}
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
 <p style="font-size:12px;line-height:1.5;color:#6b7280;text-align:center;font-family:sans-serif">
-  You are receiving this because you subscribed to updates from ${businessName}.<br />
-  <a href="${unsubUrl}" style="color:#6b7280">Unsubscribe</a>
+  ${copy.line(businessName)}<br />
+  <a href="${unsubUrl}" style="color:#6b7280">${copy.link}</a>
 </p>`
 }
 
@@ -195,6 +208,7 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
         description: business.description,
         brandVoice: business.brandVoice,
         promotions: business.promotions,
+        contentLanguage: business.contentLanguage,
       },
       prior ? { weeklyTheme: prior.weeklyTheme, chosenSubject: prior.newsletterSubject } : null
     )
@@ -321,7 +335,7 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
           from,
           to: s.email,
           subject: content!.newsletterSubject,
-          html: withUnsubscribe(content!.newsletterHtml, unsubUrl, business.name),
+          html: withUnsubscribe(content!.newsletterHtml, unsubUrl, business.name, business.contentLanguage),
           headers: { 'List-Unsubscribe': `<${unsubUrl}>` },
         }
       })
