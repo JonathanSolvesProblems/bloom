@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
+import { waitUntil } from '@vercel/functions'
 import { db } from '@/lib/db'
-import { generateWeeklyContent } from '@/lib/gemini'
+import { generateWeeklyContent, QA_THRESHOLD } from '@/lib/gemini'
+import { rewriteInBackground } from '@/lib/agent-run'
 import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
 export const maxDuration = 60
@@ -42,14 +44,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const c = await generateWeeklyContent({
+    const profile = {
       name: business.name,
       type: business.type,
       city: business.city,
       description: business.description,
       brandVoice: business.brandVoice,
       promotions: business.promotions,
-    })
+    }
+
+    // Keep the interactive preview fast: never rewrite inside the request.
+    const c = await generateWeeklyContent(profile, null, { allowRewrite: false })
 
     const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
 
@@ -133,6 +138,22 @@ export async function POST(request: NextRequest) {
           details: JSON.stringify({ weekOf, model: c.model }),
         },
       })
+    }
+
+    // The agent judged its own draft below the bar: reject and rewrite it after
+    // the response, upgrading the stored content in place.
+    if (c.qaScore !== null && c.qaScore < QA_THRESHOLD) {
+      waitUntil(
+        rewriteInBackground({
+          businessId,
+          contentId: saved.id,
+          weekOf,
+          business: profile,
+          priorWeek: null,
+          rejectedScore: c.qaScore,
+          rejectedNotes: c.qaNotes,
+        })
+      )
     }
 
     return Response.json({ content: saved })

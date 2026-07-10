@@ -77,7 +77,7 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
           <div className="text-center py-20">
             <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-foreground mb-2">Generating your content…</h2>
-            <p className="text-muted">Bloom is writing your week&apos;s marketing. This takes about 15 seconds.</p>
+            <p className="text-muted">Bloom is writing your week&apos;s marketing. This takes under a minute.</p>
           </div>
         )}
 

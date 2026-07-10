@@ -1,6 +1,82 @@
 import { db } from './db'
-import { generateWeeklyContent, QA_THRESHOLD } from './gemini'
+import { generateWeeklyContent, QA_THRESHOLD, type PriorWeek } from './gemini'
 import { Resend } from 'resend'
+
+type BusinessProfile = {
+  name: string
+  type: string
+  city: string
+  description: string
+  brandVoice: string
+  promotions?: string | null
+}
+
+/**
+ * A rewrite is a second full generation (~25s), too slow to run inside an
+ * interactive preview request. Run it after the response instead: the visitor
+ * gets the first draft immediately, and if the agent rejects its own work the
+ * stored content is upgraded in place, so whoever opens the shared link later
+ * sees the better version. The qa_regenerated event still lands in /agent.
+ */
+export async function rewriteInBackground(input: {
+  businessId: string
+  contentId: string
+  weekOf: string
+  business: BusinessProfile
+  priorWeek: PriorWeek | null
+  rejectedScore: number
+  rejectedNotes: string
+}): Promise<void> {
+  try {
+    const retry = await generateWeeklyContent(input.business, input.priorWeek, {
+      allowRewrite: false,
+      critique: input.rejectedNotes || 'Too generic; not specific to this business.',
+    })
+
+    // Only replace the draft if the rewrite genuinely scored better.
+    if ((retry.qaScore ?? -1) <= input.rejectedScore) return
+
+    await db.weeklyContent.update({
+      where: { id: input.contentId },
+      data: {
+        post1: retry.post1,
+        post2: retry.post2,
+        post3: retry.post3,
+        newsletterSubject: retry.newsletterSubject,
+        newsletterHtml: retry.newsletterHtml,
+        weeklyTheme: retry.weeklyTheme,
+        featuredPromotion: retry.featuredPromotion,
+        subjectVariants: JSON.stringify(retry.subjectVariants),
+        reasoning: retry.reasoning,
+        qaScore: retry.qaScore,
+        regenerated: true,
+        rejectedQaScore: input.rejectedScore,
+        model: retry.model,
+        tokensUsed: retry.tokensUsed,
+        latencyMs: retry.latencyMs,
+      },
+    })
+
+    await db.agentLog.create({
+      data: {
+        businessId: input.businessId,
+        action: 'qa_regenerated',
+        summary: `Rejected its own draft (${input.rejectedScore}/100) and rewrote it. Accepted at ${retry.qaScore}/100.`.slice(0, 200),
+        details: JSON.stringify({
+          weekOf: input.weekOf,
+          threshold: QA_THRESHOLD,
+          rejectedQaScore: input.rejectedScore,
+          rejectedQaNotes: input.rejectedNotes,
+          qaScore: retry.qaScore,
+          qaNotes: retry.qaNotes,
+          model: retry.model,
+        }),
+      },
+    })
+  } catch (err) {
+    console.error('Background rewrite failed:', err)
+  }
+}
 
 /** Monday (UTC date string) of the week the given date falls in. */
 export function getMondayOf(date: Date): string {

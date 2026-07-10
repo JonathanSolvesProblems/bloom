@@ -89,10 +89,13 @@ function extractJson(text: string): unknown {
 
 async function generateJson(
   prompt: string,
-  responseSchema?: unknown
+  responseSchema?: unknown,
+  thinkingBudget?: number
 ): Promise<{ data: unknown; tokens: number }> {
   const config: Record<string, unknown> = { responseMimeType: 'application/json' }
   if (responseSchema) config.responseSchema = responseSchema
+  // Scoring does not need deep reasoning: budget 0 takes the QA call from ~3s to ~0.8s.
+  if (thinkingBudget !== undefined) config.thinkingConfig = { thinkingBudget }
 
   const result = await client().models.generateContent({
     model: MODEL,
@@ -215,7 +218,7 @@ DRAFTS:
 
 Return ONE overall score from 0-100 for the whole set, and one short sentence naming the single weakest thing.`
 
-    const { data, tokens } = await generateJson(qaPrompt, QA_SCHEMA)
+    const { data, tokens } = await generateJson(qaPrompt, QA_SCHEMA, 0)
 
     const obj = asObject(data)
     let score = typeof obj.score === 'number' ? clamp(obj.score) : null
@@ -246,11 +249,16 @@ Return ONE overall score from 0-100 for the whole set, and one short sentence na
  *
  * The QA score is a gate, not a label: a low score changes what ships.
  */
-export async function generateWeeklyContent(business: Business, priorWeek: PriorWeek | null = null): Promise<WeeklyContentResult> {
+export async function generateWeeklyContent(
+  business: Business,
+  priorWeek: PriorWeek | null = null,
+  opts: { allowRewrite?: boolean; critique?: string } = {}
+): Promise<WeeklyContentResult> {
+  const allowRewrite = opts.allowRewrite !== false
   const t0 = Date.now()
   let tokens = 0
 
-  const first = await generateJson(buildPrompt(business, priorWeek, null))
+  const first = await generateJson(buildPrompt(business, priorWeek, opts.critique ?? null))
   tokens += first.tokens
   let draft = toDraft(asObject(first.data), business)
 
@@ -264,7 +272,12 @@ export async function generateWeeklyContent(business: Business, priorWeek: Prior
   let rejectedQaScore: number | null = null
   let rejectedQaNotes = ''
 
-  if (qaScore !== null && qaScore < QA_THRESHOLD) {
+  // A rewrite is a second full generation (~25s). Only start one when the caller
+  // allows it AND enough of the 60s function budget remains, or we trade a bad
+  // draft for a 504.
+  const budgetLeft = Date.now() - t0 < 30_000
+
+  if (allowRewrite && budgetLeft && qaScore !== null && qaScore < QA_THRESHOLD) {
     // The agent rejects its own work and tries again, told exactly what it got wrong.
     rejectedQaScore = qaScore
     rejectedQaNotes = qaNotes
