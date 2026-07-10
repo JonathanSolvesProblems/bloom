@@ -1,3 +1,1 @@
-{
-  "$comment": "No Vercel Cron. The weekly agent is driven by the bloom-cron sidecar on the self-hosted box (docker-compose.yml). Running a Vercel cron here too would fire a second dispatcher against the same Neon database every Monday. The atomic send-claim in agent-run.ts is the backstop against a double send; removing the schedule is the primary fix."
-}
+{}

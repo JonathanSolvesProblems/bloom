@@ -58,7 +58,13 @@ Whichever host it runs on, point a Stripe webhook at `/api/webhooks/stripe` for 
 
 ### Deploying on Vercel
 
-Add every variable above except `INTERNAL_APP_URL` in the project settings. The weekly cron in [vercel.json](vercel.json) runs automatically once deployed.
+Add every variable above except `INTERNAL_APP_URL` in the project settings.
+
+`vercel.json` intentionally defines no cron. The weekly agent is driven by the sidecar on the self-hosted box, and running a Vercel cron as well would fire a second dispatcher against the same database every Monday. The atomic send-claim in `agent-run.ts` is the backstop; removing the schedule is the primary fix. If you run Bloom on Vercel only, add the cron back:
+
+```json
+{ "crons": [{ "path": "/api/cron/weekly", "schedule": "0 13 * * 1" }] }
+```
 
 ### Deploying on a plain Docker host
 
