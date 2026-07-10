@@ -40,12 +40,18 @@ export async function GET(request: NextRequest) {
   const done = new Set(alreadyDelivered.map((c: { businessId: string }) => c.businessId))
   const todo = active.filter((b: { id: string }) => !done.has(b.id))
 
+  // Stagger the herd. Resend caps a team at 5 requests/second (429 beyond), and
+  // Vertex quota is shared too, so spread the workers rather than firing every
+  // business at the same instant. 1.5s apart keeps sends well under the cap.
+  const STAGGER_MS = 1_500
+  const MAX_DELAY_MS = 240_000
+
   const results = await Promise.allSettled(
-    todo.map((b: { id: string }) =>
+    todo.map((b: { id: string }, i: number) =>
       fetch(`${base}/api/cron/run-business`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: `Bearer ${secret}` },
-        body: JSON.stringify({ businessId: b.id }),
+        body: JSON.stringify({ businessId: b.id, delayMs: Math.min(i * STAGGER_MS, MAX_DELAY_MS) }),
       })
     )
   )

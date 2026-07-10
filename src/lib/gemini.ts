@@ -87,6 +87,13 @@ function extractJson(text: string): unknown {
   }
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+function isTransient(err: unknown): boolean {
+  const msg = String((err as Error)?.message ?? err)
+  return /\b429\b|RESOURCE_EXHAUSTED|quota|rate.?limit|\b503\b|UNAVAILABLE|deadline/i.test(msg)
+}
+
 async function generateJson(
   prompt: string,
   responseSchema?: unknown,
@@ -97,14 +104,26 @@ async function generateJson(
   // Scoring does not need deep reasoning: budget 0 takes the QA call from ~3s to ~0.8s.
   if (thinkingBudget !== undefined) config.thinkingConfig = { thinkingBudget }
 
-  const result = await client().models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config,
-  })
-  const data = extractJson(result.text ?? '')
-  const tokens = result.usageMetadata?.totalTokenCount ?? 0
-  return { data, tokens }
+  // When the weekly cron fans out, many workers hit Vertex at once. Quota
+  // rejections are transient, so back off instead of failing the customer.
+  let lastErr: unknown
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await client().models.generateContent({
+        model: MODEL,
+        contents: prompt,
+        config,
+      })
+      const data = extractJson(result.text ?? '')
+      const tokens = result.usageMetadata?.totalTokenCount ?? 0
+      return { data, tokens }
+    } catch (err) {
+      lastErr = err
+      if (!isTransient(err) || attempt === 2) throw err
+      await sleep(1000 * 2 ** attempt + Math.floor(Math.random() * 250))
+    }
+  }
+  throw lastErr
 }
 
 const VOICE_GUIDE: Record<string, string> = {

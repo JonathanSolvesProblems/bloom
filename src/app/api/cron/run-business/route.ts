@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { db } from '@/lib/db'
-import { runWeeklyForBusiness } from '@/lib/agent-run'
+import { runWeeklyForBusiness, sleep } from '@/lib/agent-run'
 
-export const maxDuration = 60
+// Hobby and Pro both allow 300s. The run itself is ~55s; the rest is headroom
+// for the stagger delay that keeps us under Resend's 5 req/s limit.
+export const maxDuration = 300
 
 /**
  * Worker: runs the weekly agent for a single business.
@@ -24,8 +26,15 @@ export async function POST(request: NextRequest) {
   const businessId = typeof body.businessId === 'string' ? body.businessId : ''
   if (!businessId) return Response.json({ error: 'Missing businessId' }, { status: 400 })
 
+  // The dispatcher staggers workers so the herd does not trip Resend's 5 req/s
+  // team limit or Vertex quota all at once.
+  const delayMs = typeof body.delayMs === 'number' ? Math.min(Math.max(body.delayMs, 0), 240_000) : 0
+
   waitUntil(
-    runWeeklyForBusiness(businessId).catch(async (err: unknown) => {
+    (async () => {
+      if (delayMs) await sleep(delayMs)
+      await runWeeklyForBusiness(businessId)
+    })().catch(async (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`Weekly run failed for ${businessId}:`, err)
       try {

@@ -6,7 +6,9 @@ import { generateWeeklyContent, QA_THRESHOLD } from '@/lib/gemini'
 import { rewriteInBackground } from '@/lib/agent-run'
 import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
-export const maxDuration = 60
+// The response lands in ~25s, but the background rewrite runs inside this same
+// invocation via waitUntil and counts against maxDuration. Give it headroom.
+export const maxDuration = 120
 
 const schema = z.object({ businessId: z.string().cuid() })
 

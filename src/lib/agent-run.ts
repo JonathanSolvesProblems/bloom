@@ -119,6 +119,27 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Resend allows 5 requests/second per team and answers 429 beyond that. The
+ * weekly fan-out can easily exceed that, so treat a rate limit as transient.
+ */
+async function sendBatchWithRetry(
+  resend: Resend,
+  payload: Parameters<Resend['batch']['send']>[0]
+): Promise<void> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { error } = await resend.batch.send(payload)
+    if (!error) return
+
+    const msg = error.message ?? JSON.stringify(error)
+    const rateLimited = /rate.?limit|too many requests|\b429\b/i.test(msg)
+    if (!rateLimited || attempt === 3) throw new Error(`Resend send failed: ${msg}`)
+    await sleep(1000 * 2 ** attempt)
+  }
+}
+
 function withUnsubscribe(html: string, unsubUrl: string, businessName: string): string {
   return `${html}
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
@@ -297,10 +318,7 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
         }
       })
 
-      const { error } = await resend.batch.send(payload)
-      if (error) {
-        throw new Error(`Resend send failed: ${error.message ?? JSON.stringify(error)}`)
-      }
+      await sendBatchWithRetry(resend, payload)
       sent += group.length
     }
 
