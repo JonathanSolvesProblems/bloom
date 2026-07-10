@@ -4,14 +4,23 @@ import { db } from './db'
 /**
  * Resolve the client IP from a source the caller cannot forge.
  *
- * Vercel sets `x-vercel-forwarded-for` and `x-real-ip` itself and strips any
- * client-supplied copies, so those are trustworthy. A raw `x-forwarded-for` can
- * be PREPENDED by the caller, which means the leftmost entry is attacker
- * controlled; the rightmost hop is the one our edge appended.
+ * `x-vercel-forwarded-for` is only trustworthy on Vercel, which sets it and
+ * strips any client-supplied copy. Bloom also runs self-hosted behind Traefik,
+ * where nothing strips it, so honouring it off-platform would let a caller mint
+ * a fresh rate-limit bucket on every request and drain the paid Gemini quota.
+ *
+ * `x-real-ip` is overwritten by both proxies with the real peer address, and the
+ * app is never reachable except through one of them. A raw `x-forwarded-for` can
+ * be PREPENDED by the caller, so the leftmost entry is attacker controlled; the
+ * rightmost hop is the one our proxy appended.
  */
+const ON_VERCEL = process.env.VERCEL === '1'
+
 function clientIp(request: NextRequest): string {
-  const vercelIp = request.headers.get('x-vercel-forwarded-for')
-  if (vercelIp) return vercelIp.split(',')[0].trim()
+  if (ON_VERCEL) {
+    const vercelIp = request.headers.get('x-vercel-forwarded-for')
+    if (vercelIp) return vercelIp.split(',')[0].trim()
+  }
 
   const realIp = request.headers.get('x-real-ip')
   if (realIp) return realIp.trim()

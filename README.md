@@ -44,16 +44,35 @@ Every value lives in [.env.example](.env.example):
 | Variable | What it is |
 | --- | --- |
 | `DATABASE_URL` | Neon Postgres connection string |
-| `GEMINI_API_KEY` | Google Generative AI (Gemini) API key |
+| `VERTEX_API_KEY` | Gemini through Vertex AI, used in production |
+| `GEMINI_API_KEY` | AI Studio key, the local fallback |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret for the Stripe webhook |
 | `RESEND_API_KEY` | Resend API key for sending email |
-| `RESEND_FROM_DOMAIN` | Verified sending domain (defaults to `bloom.ai`) |
+| `RESEND_FROM_DOMAIN` | Verified sending domain; the agent refuses to send without it |
 | `CRON_SECRET` | Shared secret the weekly cron sends as a Bearer token |
+| `NEXT_PUBLIC_APP_URL` | Public origin, baked into the client bundle |
+| `INTERNAL_APP_URL` | Self-hosted only: where the dispatcher reaches its workers |
 
-### Deploying
+Whichever host it runs on, point a Stripe webhook at `/api/webhooks/stripe` for the `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed` events.
 
-Deploy on Vercel. Add every variable above in the project settings, then point a Stripe webhook at `/api/webhooks/stripe` for the `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed` events. The weekly cron in `vercel.json` runs automatically once deployed.
+### Deploying on Vercel
+
+Add every variable above except `INTERNAL_APP_URL` in the project settings. The weekly cron in [vercel.json](vercel.json) runs automatically once deployed.
+
+### Deploying on a plain Docker host
+
+[docker-compose.yml](docker-compose.yml) runs the standalone Next.js server behind an existing Traefik, plus a sidecar that replaces Vercel Cron. The repo is checked out into `./app` beside the compose file, with `.env` (mode 600) next to it.
+
+```bash
+docker compose up -d --build
+docker compose logs -f app
+```
+
+Two things differ from Vercel and are easy to get wrong:
+
+- Background work uses `after()` from `next/server`, not `waitUntil` from `@vercel/functions`. That helper is a silent no-op off-platform, which would mean paid subscriptions never activate and the weekly agent never runs.
+- `INTERNAL_APP_URL` must use the **container name**, not the compose service name. The Traefik network is shared with other stacks, and a generic alias like `app` resolves to one of them.
 
 ## License
 
