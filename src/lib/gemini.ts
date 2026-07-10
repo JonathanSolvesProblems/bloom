@@ -115,7 +115,6 @@ Make everything sound authentically human, NOT like AI wrote it. Only return the
 
   const t0 = Date.now()
   const { data, tokens: genTokens } = await generateJson(prompt)
-  const latencyMs = Date.now() - t0
 
   const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : fallback)
   const variants = Array.isArray(data.subjectVariants) ? (data.subjectVariants as unknown[]).map((s) => String(s)) : []
@@ -162,6 +161,7 @@ Return JSON exactly: {"score": <integer 0-100>, "notes": "<one short sentence, e
     qaNotes,
     model: usingVertex() ? `${MODEL} (vertex)` : MODEL,
     tokensUsed: genTokens + qaTokens,
-    latencyMs,
+    // Total wall clock across both Gemini calls (generation + self-critique).
+    latencyMs: Date.now() - t0,
   }
 }

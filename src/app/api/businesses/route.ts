@@ -21,11 +21,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = schema.parse(body)
 
-    const existing = await db.business.findUnique({ where: { ownerEmail: data.ownerEmail } })
-    if (existing) {
-      return Response.json({ businessId: existing.id })
-    }
-
+    // Rate limit BEFORE the email lookup, otherwise this endpoint is an
+    // unlimited email -> businessId oracle for any address an attacker guesses.
     if (!(await allowRequest(request, 'business', LIMITS.business))) {
       return Response.json(
         { error: 'Too many signups from your network today. Please try again tomorrow.' },
@@ -33,9 +30,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const existing = await db.business.findUnique({ where: { ownerEmail: data.ownerEmail } })
+    if (existing) {
+      // Return the public id only. The dashboardToken is never re-issued here,
+      // so knowing an owner's email can never grant dashboard access.
+      return Response.json({ businessId: existing.id })
+    }
+
     const business = await db.business.create({ data })
 
-    return Response.json({ businessId: business.id }, { status: 201 })
+    return Response.json(
+      { businessId: business.id, dashboardToken: business.dashboardToken },
+      { status: 201 }
+    )
   } catch (err) {
     if (err instanceof z.ZodError) return Response.json({ error: err.issues }, { status: 400 })
     console.error(err)

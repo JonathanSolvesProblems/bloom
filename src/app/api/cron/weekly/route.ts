@@ -1,176 +1,58 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { generateWeeklyContent } from '@/lib/gemini'
-import { Resend } from 'resend'
+import { getMondayOf, appBaseUrl } from '@/lib/agent-run'
+import { pruneRateLimits } from '@/lib/ratelimit'
 
 export const maxDuration = 60
 
-function getMondayOf(date: Date): string {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  return d.toISOString().split('T')[0]
-}
-
+/**
+ * Weekly dispatcher.
+ *
+ * Does no generation itself. It finds the active businesses that still need
+ * this week's run and fans each one out to its own worker invocation, which
+ * ACKs in milliseconds. That keeps this function fast regardless of how many
+ * paying customers exist, instead of dying partway through a sequential loop.
+ */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return Response.json({ error: 'Server misconfigured: CRON_SECRET unset' }, { status: 500 })
+  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const base = appBaseUrl()
+  if (!base) return Response.json({ error: 'Server misconfigured: no app base URL' }, { status: 500 })
+
   const weekOf = getMondayOf(new Date())
 
-  const businesses = await db.business.findMany({
+  // Oldest first, deterministically. An unordered findMany would silently
+  // starve the same later signups every single week.
+  const active = await db.business.findMany({
     where: { subscriptionStatus: 'active' },
-    include: { subscribers: true },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
   })
 
-  let generated = 0
-  let sent = 0
-  const errors: string[] = []
+  const alreadyDelivered = await db.weeklyContent.findMany({
+    where: { weekOf, newsletterSent: true },
+    select: { businessId: true },
+  })
+  const done = new Set(alreadyDelivered.map((c: { businessId: string }) => c.businessId))
+  const todo = active.filter((b: { id: string }) => !done.has(b.id))
 
-  for (const business of businesses) {
-    try {
-      let content = await db.weeklyContent.findFirst({
-        where: { businessId: business.id, weekOf },
+  const results = await Promise.allSettled(
+    todo.map((b: { id: string }) =>
+      fetch(`${base}/api/cron/run-business`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ businessId: b.id }),
       })
+    )
+  )
 
-      if (!content) {
-        const c = await generateWeeklyContent({
-          name: business.name,
-          type: business.type,
-          city: business.city,
-          description: business.description,
-          brandVoice: business.brandVoice,
-          promotions: business.promotions,
-        })
+  const dispatched = results.filter((r) => r.status === 'fulfilled').length
+  const failed = results.length - dispatched
+  const pruned = await pruneRateLimits()
 
-        const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
-
-        content = await db.weeklyContent.create({
-          data: {
-            businessId: business.id,
-            weekOf,
-            post1: c.post1,
-            post2: c.post2,
-            post3: c.post3,
-            newsletterSubject: c.newsletterSubject,
-            newsletterHtml: c.newsletterHtml,
-            weeklyTheme: c.weeklyTheme,
-            featuredPromotion: c.featuredPromotion,
-            subjectVariants: JSON.stringify(c.subjectVariants),
-            reasoning: c.reasoning,
-            qaScore: c.qaScore,
-            model: c.model,
-            tokensUsed: c.tokensUsed,
-            latencyMs: c.latencyMs,
-          },
-        })
-
-        await db.agentLog.create({
-          data: {
-            businessId: business.id,
-            action: 'generated_content',
-            summary: `Wrote 3 posts + newsletter. Theme: ${c.weeklyTheme || 'weekly update'}`.slice(0, 200),
-            details: JSON.stringify({
-              weekOf,
-              weeklyTheme: c.weeklyTheme,
-              featuredPromotion: c.featuredPromotion,
-              chosenSubject: c.chosenSubject,
-              subjectVariants: c.subjectVariants,
-              reasoning: c.reasoning,
-              model: c.model,
-              tokensUsed: c.tokensUsed,
-              latencyMs: c.latencyMs,
-            }),
-          },
-        })
-
-        if (!ownerGavePromo && c.featuredPromotion) {
-          await db.agentLog.create({
-            data: {
-              businessId: business.id,
-              action: 'decided_promotion',
-              summary: `Chose this week's angle: ${c.featuredPromotion}`.slice(0, 200),
-              details: JSON.stringify({ weekOf, featuredPromotion: c.featuredPromotion, reasoning: c.reasoning }),
-            },
-          })
-        }
-
-        if (c.qaScore !== null) {
-          await db.agentLog.create({
-            data: {
-              businessId: business.id,
-              action: 'qa_review',
-              summary: `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
-              details: JSON.stringify({ weekOf, qaScore: c.qaScore, qaNotes: c.qaNotes, model: c.model }),
-            },
-          })
-        }
-
-        generated++
-      }
-
-      if (!content.newsletterSent && business.subscribers.length > 0) {
-        const resend = new Resend(process.env.RESEND_API_KEY!)
-        const emailList = business.subscribers.map((s: { email: string }) => s.email)
-        const fromDomain = process.env.RESEND_FROM_DOMAIN ?? 'bloom.ai'
-        const fromEmail = `${business.name} <newsletter@${fromDomain}>`
-
-        await resend.batch.send(
-          emailList.map((to: string) => ({
-            from: fromEmail,
-            to,
-            subject: content!.newsletterSubject,
-            html: content!.newsletterHtml,
-          }))
-        )
-
-        await db.weeklyContent.update({
-          where: { id: content.id },
-          data: {
-            newsletterSent: true,
-            newsletterSentAt: new Date(),
-            subscriberCount: emailList.length,
-          },
-        })
-
-        await db.agentLog.create({
-          data: {
-            businessId: business.id,
-            action: 'sent_newsletter',
-            summary: `Emailed newsletter to ${emailList.length} subscribers`,
-            details: JSON.stringify({ weekOf, recipients: emailList.length, subject: content.newsletterSubject }),
-          },
-        })
-        sent++
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      errors.push(`${business.name}: ${msg}`)
-      console.error(`Failed for business ${business.id}:`, err)
-      try {
-        await db.agentLog.create({
-          data: {
-            businessId: business.id,
-            action: 'agent_error',
-            summary: `Weekly run failed: ${msg}`.slice(0, 200),
-            details: JSON.stringify({ weekOf, error: msg }),
-          },
-        })
-      } catch {
-        /* logging must never crash the run */
-      }
-    }
-  }
-
-  return Response.json({
-    ok: true,
-    weekOf,
-    businesses: businesses.length,
-    generated,
-    sent,
-    errors,
-  })
+  return Response.json({ ok: true, weekOf, active: active.length, dispatched, failed, pruned })
 }

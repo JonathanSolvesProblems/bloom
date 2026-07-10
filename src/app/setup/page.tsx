@@ -97,7 +97,16 @@ export default function SetupPage() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error('Failed to create business')
-      const { businessId } = await res.json()
+      const { businessId, dashboardToken } = await res.json()
+      // Keep the owner-only token in this browser. It must never ride along in
+      // the preview URL, because that link gets shared with prospects.
+      if (dashboardToken) {
+        try {
+          localStorage.setItem(`bloom_dt_${businessId}`, dashboardToken)
+        } catch {
+          /* private mode: owner can still reach the dashboard after checkout */
+        }
+      }
       router.push(`/preview/${businessId}`)
     } catch {
       setErrors({ ownerEmail: 'Something went wrong, please try again' })

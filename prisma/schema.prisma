@@ -20,6 +20,8 @@ model Business {
   promotions           String?
   ownerEmail           String          @unique
   ownerName            String
+  // Owner-only bearer token for the dashboard. Never exposed on public pages.
+  dashboardToken       String          @unique @default(cuid())
   tier                 String          @default("free")
   stripeCustomerId     String?
   stripeSubscriptionId String?
@@ -62,6 +64,8 @@ model WeeklyContent {
   model             String?
   tokensUsed        Int?
   latencyMs         Int?
+
+  @@unique([businessId, weekOf])
 }
 
 model AgentLog {

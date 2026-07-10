@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
       },
     ],
     metadata: { businessId },
-    success_url: `${origin}/dashboard/${businessId}?activated=1`,
+    // The owner-only token is required to open the dashboard. Handing it back on
+    // the post-payment redirect is what lets them in (and bookmark it).
+    success_url: `${origin}/dashboard/${businessId}?activated=1&t=${encodeURIComponent(business.dashboardToken)}`,
     cancel_url: `${origin}/preview/${businessId}`,
   })
 

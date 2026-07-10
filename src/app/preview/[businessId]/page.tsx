@@ -18,6 +18,17 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
+  // Owner-only dashboard token, kept in this browser. Anyone who was merely
+  // sent this preview link will not have it, so no dashboard link renders.
+  const [dashToken, setDashToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      setDashToken(localStorage.getItem(`bloom_dt_${businessId}`))
+    } catch {
+      /* storage unavailable */
+    }
+  }, [businessId])
 
   useEffect(() => {
     fetch('/api/generate', {
@@ -50,9 +61,14 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
             </div>
             <span className="font-semibold text-foreground">Bloom</span>
           </div>
-          <Link href={`/dashboard/${businessId}`} className="text-sm text-emerald-600 hover:underline flex items-center gap-1">
-            Go to dashboard <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          {dashToken && (
+            <Link
+              href={`/dashboard/${businessId}?t=${dashToken}`}
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
+            >
+              Go to dashboard <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
       </header>
 
@@ -149,13 +165,15 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
                   Activate for $99/month
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link
-                  href={`/dashboard/${businessId}`}
-                  className="border border-emerald-400 text-white font-medium py-3 px-6 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View dashboard first
-                </Link>
+                {dashToken && (
+                  <Link
+                    href={`/dashboard/${businessId}?t=${dashToken}`}
+                    className="border border-emerald-400 text-white font-medium py-3 px-6 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View dashboard first
+                  </Link>
+                )}
               </div>
               <p className="text-emerald-200 text-sm mt-4">Cancel anytime. No lock-in.</p>
             </div>

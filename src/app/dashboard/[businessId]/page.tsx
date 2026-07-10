@@ -30,10 +30,14 @@ type Log = { id: string; action: string; summary: string; details: string | null
 
 export default async function DashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ businessId: string }>
+  searchParams: Promise<{ t?: string }>
 }) {
   const { businessId } = await params
+  const { t } = await searchParams
+
   const business = await db.business.findUnique({
     where: { id: businessId },
     include: {
@@ -44,6 +48,12 @@ export default async function DashboardPage({
   })
 
   if (!business) notFound()
+
+  // This page renders subscriber email addresses and owner data. The businessId
+  // is public (it is in every subscribe link), so it is not a credential.
+  // Require the owner-only token, and 404 rather than 403 so the route never
+  // confirms that a given business exists.
+  if (!t || t !== business.dashboardToken) notFound()
 
   const latestContent = business.weeklyContent[0]
   const isActive = business.subscriptionStatus === 'active'
@@ -267,7 +277,7 @@ export default async function DashboardPage({
         </div>
 
         {/* Promotions editor */}
-        <PromotionsEditor businessId={businessId} currentPromotions={business.promotions ?? ''} />
+        <PromotionsEditor businessId={businessId} currentPromotions={business.promotions ?? ''} token={t} />
       </div>
     </div>
   )
@@ -276,12 +286,15 @@ export default async function DashboardPage({
 function PromotionsEditor({
   businessId,
   currentPromotions,
+  token,
 }: {
   businessId: string
   currentPromotions: string
+  token: string
 }) {
   return (
     <form action={`/api/businesses/${businessId}/promotions`} method="POST" className="card bg-card">
+      <input type="hidden" name="t" value={token} />
       <h2 className="font-semibold text-foreground mb-2">Update this week&apos;s promotions</h2>
       <p className="text-sm text-muted mb-4">
         Tell Bloom what to feature this week. Leave it blank and the agent will decide the angle for you.

@@ -40,18 +40,25 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   let businessId: string | null = null
   let subscriptionId: string | null = null
   let customerId: string | null = null
+  // Only Stripe's real subscription status may grant paid delivery. A bare
+  // `customer.subscription.updated` also fires for past_due, unpaid, paused and
+  // cancellation transitions, so treating it as an activation would revive
+  // non-paying accounts.
+  let entitled = false
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     businessId = session.metadata?.businessId ?? null
     subscriptionId = session.subscription as string
     customerId = session.customer as string
+    entitled = session.payment_status === 'paid' || session.status === 'complete'
   } else if (event.type === 'customer.subscription.updated') {
     const sub = event.data.object as Stripe.Subscription
     subscriptionId = sub.id
     customerId = sub.customer as string
     const business = await db.business.findFirst({ where: { stripeCustomerId: customerId } })
     businessId = business?.id ?? null
+    entitled = sub.status === 'active' || sub.status === 'trialing'
   }
 
   if (!businessId) return
@@ -59,8 +66,8 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   await db.business.update({
     where: { id: businessId },
     data: {
-      tier: 'pro',
-      subscriptionStatus: 'active',
+      tier: entitled ? 'pro' : 'free',
+      subscriptionStatus: entitled ? 'active' : 'inactive',
       stripeSubscriptionId: subscriptionId,
       stripeCustomerId: customerId,
     },
@@ -69,8 +76,11 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   await db.agentLog.create({
     data: {
       businessId,
-      action: 'subscription_activated',
-      summary: 'Pro subscription activated: weekly AI content delivery enabled',
+      action: entitled ? 'subscription_activated' : 'paused_delivery',
+      summary: entitled
+        ? 'Pro subscription activated: weekly AI content delivery enabled'
+        : 'Delivery paused: subscription is no longer in good standing',
+      details: JSON.stringify({ event: event.type }),
     },
   })
 }
