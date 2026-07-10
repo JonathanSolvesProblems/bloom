@@ -24,6 +24,8 @@ const ACTION_STYLES: Record<string, { label: string; dot: string }> = {
   qa_review: { label: 'qa', dot: 'bg-brand-teal' },
   qa_regenerated: { label: 'rewrote', dot: 'bg-accent-coral' },
   qa_failed: { label: 'qa n/a', dot: 'bg-muted' },
+  subscription_activated: { label: 'activate', dot: 'bg-brand-emerald' },
+  delivery_skipped: { label: 'hold', dot: 'bg-muted' },
   paused_delivery: { label: 'pause', dot: 'bg-accent-coral' },
   agent_error: { label: 'error', dot: 'bg-red-500' },
 }
@@ -59,7 +61,9 @@ export default async function DashboardPage({
 
   const latestContent = business.weeklyContent[0]
   const isActive = business.subscriptionStatus === 'active'
+  const isPro = isActive && business.tier === 'pro'
   const subscriberCount = business.subscribers.length
+  const tokenQuery = encodeURIComponent(t)
 
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -84,12 +88,24 @@ export default async function DashboardPage({
               <Activity className="w-3.5 h-3.5" /> Agent feed
             </Link>
             {isActive ? (
-              <div className="flex items-center gap-1.5 bg-brand-emerald/10 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-                <Zap className="w-3 h-3" /> Active
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-brand-emerald/10 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                  <Zap className="w-3 h-3" /> {isPro ? 'Pro' : 'Starter'}
+                </div>
+                {!isPro && (
+                  // Upgrading swaps the price on the existing subscription. A
+                  // second checkout would bill the same card twice, so this is a
+                  // POST to a route that updates the live subscription in place.
+                  <form action={`/api/upgrade?businessId=${businessId}&t=${tokenQuery}`} method="post">
+                    <button type="submit" className="btn-primary text-sm py-2 px-4">
+                      Upgrade to Pro <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                )}
               </div>
             ) : (
-              <Link href={`/api/checkout?businessId=${businessId}`} className="btn-primary text-sm py-2 px-4">
-                Activate for $99/mo <ArrowRight className="w-3.5 h-3.5" />
+              <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-primary text-sm py-2 px-4">
+                Activate from $49/mo <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -98,17 +114,40 @@ export default async function DashboardPage({
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {!isActive && (
-          <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-5 flex items-start gap-4">
-            <Clock className="w-5 h-5 text-brand-emerald mt-0.5 shrink-0" />
+          <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <Clock className="w-5 h-5 text-brand-emerald shrink-0" />
             <div className="flex-1">
-              <p className="font-semibold text-foreground">Auto-delivery is not active yet</p>
+              <p className="font-semibold text-foreground">Your agent is not running yet</p>
               <p className="text-sm text-muted mt-1">
-                Upgrade to Pro and Bloom will generate and send your content every Monday, automatically.
+                Starter writes your posts and newsletter every Monday. Pro also emails it to your subscribers.
               </p>
             </div>
-            <Link href={`/api/checkout?businessId=${businessId}`} className="btn-primary text-sm py-2 px-4 shrink-0">
-              Activate <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="flex gap-2 shrink-0">
+              <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-outline text-sm py-2 px-4">
+                Starter, $49
+              </Link>
+              <Link href={`/api/checkout?businessId=${businessId}&plan=pro`} className="btn-primary text-sm py-2 px-4">
+                Pro, $99 <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {isActive && !isPro && (
+          <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <Mail className="w-5 h-5 text-brand-emerald shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">You are sending the newsletter yourself</p>
+              <p className="text-sm text-muted mt-1">
+                On Pro, Bloom emails each Monday&apos;s newsletter to your {subscriberCount}{' '}
+                {subscriberCount === 1 ? 'subscriber' : 'subscribers'} and logs every message.
+              </p>
+            </div>
+            <form action={`/api/upgrade?businessId=${businessId}&t=${tokenQuery}`} method="post" className="shrink-0">
+              <button type="submit" className="btn-primary text-sm py-2 px-4">
+                Upgrade to Pro <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </form>
           </div>
         )}
 

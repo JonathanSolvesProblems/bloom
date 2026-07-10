@@ -36,10 +36,21 @@ export async function POST(request: NextRequest) {
   return Response.json({ received: true })
 }
 
+type Plan = 'starter' | 'pro'
+
+/** Trust the stamped metadata; fall back to the amount if an old sub lacks it. */
+function planOf(sub: Stripe.Subscription): Plan {
+  const meta = sub.metadata?.plan
+  if (meta === 'starter' || meta === 'pro') return meta
+  const amount = sub.items?.data?.[0]?.price?.unit_amount ?? 9900
+  return amount <= 4900 ? 'starter' : 'pro'
+}
+
 async function handleSubscriptionEvent(event: Stripe.Event) {
   let businessId: string | null = null
   let subscriptionId: string | null = null
   let customerId: string | null = null
+  let plan: Plan = 'pro'
   // Only Stripe's real subscription status may grant paid delivery. A bare
   // `customer.subscription.updated` also fires for past_due, unpaid, paused and
   // cancellation transitions, so treating it as an activation would revive
@@ -52,6 +63,8 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
     subscriptionId = session.subscription as string
     customerId = session.customer as string
     entitled = session.payment_status === 'paid' || session.status === 'complete'
+    const m = session.metadata?.plan
+    plan = m === 'starter' ? 'starter' : 'pro'
   } else if (event.type === 'customer.subscription.updated') {
     const sub = event.data.object as Stripe.Subscription
     subscriptionId = sub.id
@@ -59,6 +72,7 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
     const business = await db.business.findFirst({ where: { stripeCustomerId: customerId } })
     businessId = business?.id ?? null
     entitled = sub.status === 'active' || sub.status === 'trialing'
+    plan = planOf(sub)
   }
 
   if (!businessId) return
@@ -66,7 +80,7 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   await db.business.update({
     where: { id: businessId },
     data: {
-      tier: entitled ? 'pro' : 'free',
+      tier: entitled ? plan : 'free',
       subscriptionStatus: entitled ? 'active' : 'inactive',
       stripeSubscriptionId: subscriptionId,
       stripeCustomerId: customerId,
@@ -78,9 +92,11 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
       businessId,
       action: entitled ? 'subscription_activated' : 'paused_delivery',
       summary: entitled
-        ? 'Pro subscription activated: weekly AI content delivery enabled'
+        ? plan === 'pro'
+          ? 'Pro activated: weekly content plus automatic newsletter delivery'
+          : 'Starter activated: weekly content written for you every Monday'
         : 'Delivery paused: subscription is no longer in good standing',
-      details: JSON.stringify({ event: event.type }),
+      details: JSON.stringify({ event: event.type, plan }),
     },
   })
 }

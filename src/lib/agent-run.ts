@@ -309,6 +309,23 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
   }
 
   let sent = 0
+
+  // Starter and Pro both get the week written. Only Pro gets it delivered.
+  // That one capability is the whole difference between the two prices.
+  if (business.tier !== 'pro') {
+    if (generated) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'delivery_skipped',
+          summary: 'Content is ready to publish. Automatic newsletter delivery is a Pro feature.',
+          details: JSON.stringify({ weekOf, tier: business.tier }),
+        },
+      })
+    }
+    return { generated, sent: 0 }
+  }
+
   if (!content.newsletterSent && business.subscribers.length > 0) {
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) throw new Error('RESEND_API_KEY is not set; cannot send newsletter')

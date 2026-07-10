@@ -12,7 +12,7 @@ Live app: **https://bloom-six-theta.vercel.app**. Enter a business in three step
 
 1. **Set up once.** The owner enters their business details, picks a brand voice, and adds their contact info. Three short steps, no credit card.
 2. **See a free preview.** Bloom generates three real social posts and a newsletter draft on the spot, so the owner sees the quality before paying anything.
-3. **The agent takes over.** On Pro ($99/month), a scheduled job runs every Monday at 13:00 UTC. It generates that week's content with Gemini, saves it, emails the newsletter to the business's subscriber list through Resend, and logs every action to an activity log.
+3. **The agent takes over.** A scheduled job runs every Monday at 13:00 UTC. It generates that week's content with Gemini, saves it, and logs every action to an activity log. On Starter ($49/month) the owner publishes it themselves. On Pro ($99/month) the agent also emails the newsletter to the business's subscriber list through Resend.
 4. **Grow the list.** Each business gets a public subscribe page to share with customers so their audience keeps growing.
 
 The weekly run is fully autonomous. No person triggers it: the Vercel Cron defined in [vercel.json](vercel.json) calls `/api/cron/weekly`, which is the agent's entry point.
@@ -22,7 +22,7 @@ The weekly run is fully autonomous. No person triggers it: the Vercel Cron defin
 - **Next.js 16** (App Router) and React 19
 - **Google Gemini 2.5 Flash** for content generation, in [src/lib/gemini.ts](src/lib/gemini.ts)
 - **Prisma 7** on **Neon** Postgres, schema in [prisma/schema.prisma](prisma/schema.prisma)
-- **Stripe** for the $99/month subscription and webhooks
+- **Stripe** for the Starter and Pro subscriptions and webhooks
 - **Resend** for newsletter delivery
 - **Vercel Cron** for the weekly agent run
 

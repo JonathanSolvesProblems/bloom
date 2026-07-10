@@ -70,7 +70,7 @@ const steps = [
 const faqs = [
   {
     q: 'Does Bloom post to my social accounts automatically?',
-    a: 'Your email newsletter is sent to your subscribers automatically every Monday. Social captions for Instagram, Facebook, and Google are written and formatted for you to copy and paste in seconds. Bloom does not publish to third-party social accounts on your behalf.',
+    a: 'No. Social captions for Instagram, Facebook, and Google are written and formatted for you to copy and paste in seconds. Bloom does not publish to third-party social accounts on your behalf. On Pro, the one thing it does send on its own is your email newsletter, every Monday.',
   },
   {
     q: 'Can I review or edit anything before it goes out?',
@@ -82,11 +82,15 @@ const faqs = [
   },
   {
     q: 'What does the AI actually do on its own?',
-    a: 'A scheduled agent runs every week with no human trigger. It generates that week of content with Google Gemini, emails your newsletter through Resend, and records every action to your activity log.',
+    a: 'A scheduled agent runs every week with no human trigger. It picks the angle, writes the week with Google Gemini, scores its own draft and rewrites it when it falls short, and records every action to your activity log. On Pro it also emails your newsletter through Resend.',
+  },
+  {
+    q: 'What is the difference between Starter and Pro?',
+    a: 'One thing: who sends the newsletter. Starter writes your week and leaves it ready to publish. Pro emails it to your subscribers every Monday and logs each message. You can move from Starter to Pro from your dashboard, and the change is prorated.',
   },
   {
     q: 'Is there a contract?',
-    a: 'No. Pro is month to month and you can cancel in one click anytime.',
+    a: 'No. Both plans are month to month and you can cancel in one click anytime.',
   },
   {
     q: 'Where does my subscriber list live?',
@@ -354,35 +358,60 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto text-center">
             <Reveal>
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Simple pricing</h2>
-              <p className="text-muted mt-3 mb-4">One plan. Everything included. Cancel anytime.</p>
+              <p className="text-muted mt-3 mb-4">Pick who does the sending. Cancel anytime.</p>
               <p className="text-sm text-muted mb-12 max-w-lg mx-auto">
-                $99 a month is less than one slow-night table, or about two hours with a freelance marketer, for a full
-                month of content.
+                Starter writes your week and hands it to you. Pro also emails it, so Monday happens without you.
               </p>
             </Reveal>
-            <div className="flex flex-col md:flex-row gap-6 justify-center max-w-3xl mx-auto text-left">
-              <Reveal className="flex-1">
-                <div className="card h-full">
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto text-left items-stretch">
+              <Reveal>
+                <div className="card h-full flex flex-col">
                   <div className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Preview</div>
                   <div className="text-4xl font-bold text-foreground mb-1">Free</div>
                   <p className="text-sm text-muted mb-6">See your AI-generated content before you commit.</p>
                   <ul className="space-y-2.5 text-sm text-foreground/80 mb-6">
-                    {['A real week of content for your business', '3 social posts + a newsletter draft', 'No credit card required'].map(
+                    {['One real week of content for your business', '3 social posts + a newsletter draft', 'No credit card required'].map(
                       (f) => (
-                        <li key={f} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-brand-emerald" /> {f}
+                        <li key={f} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand-emerald mt-0.5 shrink-0" /> {f}
                         </li>
                       )
                     )}
                   </ul>
-                  <Link href="/setup" className="btn-outline w-full text-sm">
+                  <Link href="/setup" className="btn-outline w-full text-sm mt-auto">
                     Preview for free
                   </Link>
                 </div>
               </Reveal>
 
-              <Reveal delay={80} className="flex-1">
-                <div className="card h-full relative ring-2 ring-brand-emerald">
+              <Reveal delay={80}>
+                <div className="card h-full flex flex-col">
+                  <div className="text-sm font-semibold text-brand-teal-text uppercase tracking-wide mb-2">Starter</div>
+                  <div className="text-4xl font-bold text-foreground mb-1">
+                    $49 <span className="text-lg font-normal text-muted">/month</span>
+                  </div>
+                  <p className="text-sm text-muted mb-6">Your week, written. You press publish.</p>
+                  <ul className="space-y-2.5 text-sm text-foreground/80 mb-6">
+                    {[
+                      '3 social posts written every week',
+                      'A newsletter drafted and ready to paste',
+                      'Full agent activity dashboard',
+                      'Update promotions anytime',
+                      'Cancel anytime',
+                    ].map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-brand-emerald mt-0.5 shrink-0" /> {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/setup" className="btn-outline w-full text-sm mt-auto">
+                    Start with a free preview
+                  </Link>
+                </div>
+              </Reveal>
+
+              <Reveal delay={160}>
+                <div className="card h-full flex flex-col relative ring-2 ring-brand-emerald">
                   <div className="absolute -top-3 left-6 bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Full autopilot
                   </div>
@@ -393,19 +422,18 @@ export default function HomePage() {
                   <p className="text-sm text-muted mb-6">The full weekly agent, running on its own.</p>
                   <ul className="space-y-2.5 text-sm text-foreground/80 mb-6">
                     {[
-                      '3 social posts written every week',
+                      'Everything in Starter',
                       'Newsletter emailed automatically every Monday',
-                      'Full agent activity dashboard',
                       'Subscriber management + subscribe page',
-                      'Update promotions anytime',
-                      'Cancel anytime',
+                      'One-click unsubscribe handled for you',
+                      'Delivery logged, message by message',
                     ].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand-emerald" /> {f}
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-brand-emerald mt-0.5 shrink-0" /> {f}
                       </li>
                     ))}
                   </ul>
-                  <Link href="/setup" className="btn-primary w-full text-sm">
+                  <Link href="/setup" className="btn-primary w-full text-sm mt-auto">
                     Start with a free preview
                     <ArrowRight className="w-4 h-4" />
                   </Link>
