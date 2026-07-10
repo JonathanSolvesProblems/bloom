@@ -465,7 +465,15 @@ export default function HomePage() {
             <Link href="/setup" className="hover:text-foreground transition-colors">
               Get started
             </Link>
-            <span className="text-muted">Built with Google Gemini</span>
+            <a
+              href="https://jonathanandrei.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              Built by Jonathan Andrei
+            </a>
+            <span className="text-muted">Runs on Gemini via Vertex AI</span>
           </div>
         </div>
       </footer>

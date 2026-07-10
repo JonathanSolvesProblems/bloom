@@ -1,0 +1,14 @@
+# Never bake secrets or local build output into an image layer.
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+.git
+.gitignore
+.vercel
+src/generated
+npm-debug.log*
+*.tsbuildinfo
