@@ -1,0 +1,6 @@
+# Shell scripts run inside Linux containers. A CRLF checkout on Windows makes
+# the shebang line unparseable ("illegal option -"), so pin them to LF whatever
+# core.autocrlf says locally.
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
