@@ -35,8 +35,10 @@ services:
         max-file: "3"
 
   # The weekly agent has no Vercel Cron here, so a sidecar wakes it up. It only
-  # holds the shared secret and calls the public dispatcher endpoint; all the
-  # real work (fan-out, stagger, generation, delivery) stays in the app.
+  # holds the shared secret and calls the dispatcher endpoint; all the real work
+  # (fan-out, stagger, generation, delivery) stays in the app. It addresses the
+  # app as `bloom`, the container name, because `web` is shared with every other
+  # stack on this box and the alias `app` is not unique there.
   #
   # Monday 13:00 UTC, matching vercel.json so the schedule does not change with
   # the host. Weekly content is keyed @@unique([businessId, weekOf]), so a double

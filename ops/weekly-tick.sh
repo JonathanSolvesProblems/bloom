@@ -10,8 +10,11 @@ set -eu
 
 CRON_SECRET="$(cat /run/cron-secret)"
 
+# `bloom`, not the compose service name `app`. The `web` network is shared with
+# every other stack on this box, and at least two of them also expose a service
+# called `app`, so that alias round-robins to a stranger's container.
 echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] weekly tick"
 curl -fsS -m 120 \
   -H "authorization: Bearer ${CRON_SECRET}" \
-  http://app:3000/api/cron/weekly
+  http://bloom:3000/api/cron/weekly
 echo ""
