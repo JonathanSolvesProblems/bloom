@@ -33,38 +33,45 @@ export async function rewriteInBackground(input: {
       critique: input.rejectedNotes || 'Too generic; not specific to this business.',
     })
 
-    // Only replace the draft if the rewrite genuinely scored better.
-    if ((retry.qaScore ?? -1) <= input.rejectedScore) return
+    // Only replace the draft if the rewrite genuinely scored better. Either way
+    // the attempt is recorded: a silent no-op would make a broken rewrite look
+    // identical to a rewrite that simply did not help.
+    const improved = (retry.qaScore ?? -1) > input.rejectedScore
 
-    await db.weeklyContent.update({
-      where: { id: input.contentId },
-      data: {
-        post1: retry.post1,
-        post2: retry.post2,
-        post3: retry.post3,
-        newsletterSubject: retry.newsletterSubject,
-        newsletterHtml: retry.newsletterHtml,
-        weeklyTheme: retry.weeklyTheme,
-        featuredPromotion: retry.featuredPromotion,
-        subjectVariants: JSON.stringify(retry.subjectVariants),
-        reasoning: retry.reasoning,
-        qaScore: retry.qaScore,
-        regenerated: true,
-        rejectedQaScore: input.rejectedScore,
-        model: retry.model,
-        tokensUsed: retry.tokensUsed,
-        latencyMs: retry.latencyMs,
-      },
-    })
+    if (improved) {
+      await db.weeklyContent.update({
+        where: { id: input.contentId },
+        data: {
+          post1: retry.post1,
+          post2: retry.post2,
+          post3: retry.post3,
+          newsletterSubject: retry.newsletterSubject,
+          newsletterHtml: retry.newsletterHtml,
+          weeklyTheme: retry.weeklyTheme,
+          featuredPromotion: retry.featuredPromotion,
+          subjectVariants: JSON.stringify(retry.subjectVariants),
+          reasoning: retry.reasoning,
+          qaScore: retry.qaScore,
+          regenerated: true,
+          rejectedQaScore: input.rejectedScore,
+          model: retry.model,
+          tokensUsed: retry.tokensUsed,
+          latencyMs: retry.latencyMs,
+        },
+      })
+    }
 
     await db.agentLog.create({
       data: {
         businessId: input.businessId,
         action: 'qa_regenerated',
-        summary: `Rejected its own draft (${input.rejectedScore}/100) and rewrote it. Accepted at ${retry.qaScore}/100.`.slice(0, 200),
+        summary: improved
+          ? `Rejected its own draft (${input.rejectedScore}/100) and rewrote it. Accepted at ${retry.qaScore}/100.`.slice(0, 200)
+          : `Rejected its own draft (${input.rejectedScore}/100), rewrote it, but the rewrite scored ${retry.qaScore}/100 so it kept the original.`.slice(0, 200),
         details: JSON.stringify({
           weekOf: input.weekOf,
           threshold: QA_THRESHOLD,
+          improved,
           rejectedQaScore: input.rejectedScore,
           rejectedQaNotes: input.rejectedNotes,
           qaScore: retry.qaScore,
@@ -74,7 +81,20 @@ export async function rewriteInBackground(input: {
       },
     })
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     console.error('Background rewrite failed:', err)
+    try {
+      await db.agentLog.create({
+        data: {
+          businessId: input.businessId,
+          action: 'agent_error',
+          summary: `Background rewrite failed: ${msg}`.slice(0, 200),
+          details: JSON.stringify({ weekOf: input.weekOf, error: msg }),
+        },
+      })
+    } catch {
+      /* logging must never crash the background task */
+    }
   }
 }
 
