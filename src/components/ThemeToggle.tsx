@@ -19,13 +19,17 @@ export default function ThemeToggle() {
 
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    document.documentElement.setAttribute('data-theme', next)
+    // Persist first: if storage throws, the user still gets the visual change,
+    // but we never leave the DOM and storage disagreeing.
     try {
       localStorage.setItem('theme', next)
     } catch {
-      /* storage unavailable */
+      /* storage unavailable (private mode) */
     }
+    setTheme(next)
+    const root = document.documentElement
+    root.setAttribute('data-theme', next)
+    root.style.colorScheme = next
   }
 
   return (

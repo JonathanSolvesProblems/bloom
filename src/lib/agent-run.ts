@@ -128,16 +128,22 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 async function sendBatchWithRetry(
   resend: Resend,
   payload: Parameters<Resend['batch']['send']>[0]
-): Promise<void> {
+): Promise<string[]> {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const { error } = await resend.batch.send(payload)
-    if (!error) return
+    const { data, error } = await resend.batch.send(payload)
+    if (!error) {
+      // Keep the provider message ids. Acceptance is not delivery, and without
+      // these we can never check afterwards whether mail actually landed.
+      const rows = (data as { data?: { id: string }[] } | null)?.data ?? []
+      return rows.map((r) => r.id).filter(Boolean)
+    }
 
     const msg = error.message ?? JSON.stringify(error)
     const rateLimited = /rate.?limit|too many requests|\b429\b/i.test(msg)
     if (!rateLimited || attempt === 3) throw new Error(`Resend send failed: ${msg}`)
     await sleep(1000 * 2 ** attempt)
   }
+  return []
 }
 
 function withUnsubscribe(html: string, unsubUrl: string, businessName: string): string {
@@ -305,6 +311,8 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
     const resend = new Resend(apiKey)
     const from = `${business.name} <newsletter@${fromDomain}>`
 
+    const messageIds: string[] = []
+
     // Resend's batch endpoint accepts at most 100 messages per call.
     for (const group of chunk(business.subscribers, 100)) {
       const payload = group.map((s: { id: string; email: string }) => {
@@ -318,7 +326,8 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
         }
       })
 
-      await sendBatchWithRetry(resend, payload)
+      const ids = await sendBatchWithRetry(resend, payload)
+      messageIds.push(...ids)
       sent += group.length
     }
 
@@ -332,7 +341,13 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
         businessId,
         action: 'sent_newsletter',
         summary: `Emailed newsletter to ${sent} subscribers`,
-        details: JSON.stringify({ weekOf, recipients: sent, subject: content.newsletterSubject }),
+        details: JSON.stringify({
+          weekOf,
+          recipients: sent,
+          subject: content.newsletterSubject,
+          // Provider ids: acceptance only. Delivery is confirmed separately.
+          messageIds,
+        }),
       },
     })
   }
