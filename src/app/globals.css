@@ -10,16 +10,21 @@
   --glass: rgba(255, 255, 255, 0.7);
   --glass-border: #ece9e4;
 
-  --primary: #059669;
-  --primary-dark: #047857;
+  /* White text on --primary must clear WCAG AA (4.5:1). #059669 was 3.77:1. */
+  --primary: #047857;
+  --primary-dark: #065f46;
   --primary-light: #d1fae5;
 
   --brand-emerald: #10b981;
   --brand-teal: #14b8a6;
+  /* Teal used as TEXT on light grounds; #14b8a6 was 2.49:1. */
+  --brand-teal-text: #0f766e;
   --brand-cyan: #22d3ee;
   --brand-violet: #a78bfa;
 
   --accent-coral: #fb7a50;
+  /* Coral behind white button text; #fb7a50 was 2.63:1. */
+  --accent-coral-strong: #c2410c;
   --accent-peach: #fdba8c;
 
   --ink-dark: #06120d;
@@ -40,6 +45,8 @@
   --glass: rgba(15, 32, 25, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --ink-dark: #0e211a;
+  /* On dark grounds the teal text must lighten, not darken. */
+  --brand-teal-text: #5eead4;
 }
 
 @theme inline {
@@ -56,10 +63,12 @@
 
   --color-brand-emerald: var(--brand-emerald);
   --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-text: var(--brand-teal-text);
   --color-brand-cyan: var(--brand-cyan);
   --color-brand-violet: var(--brand-violet);
 
   --color-accent-coral: var(--accent-coral);
+  --color-accent-coral-strong: var(--accent-coral-strong);
   --color-accent-peach: var(--accent-peach);
 
   --color-ink-dark: var(--ink-dark);
@@ -114,9 +123,16 @@ h1, h2, h3 {
   box-shadow: 0 1px 2px rgba(11, 27, 20, 0.08), 0 6px 20px rgba(5, 150, 105, 0.18);
 }
 .btn-primary:hover {
-  background: var(--accent-coral);
+  background: var(--accent-coral-strong);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(11, 27, 20, 0.1), 0 10px 28px rgba(251, 122, 80, 0.28);
+  box-shadow: 0 2px 4px rgba(11, 27, 20, 0.1), 0 10px 28px rgba(194, 65, 12, 0.28);
+}
+
+/* Keyboard users need a visible focus target everywhere, not just a border tint. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .btn-outline {
@@ -169,6 +185,10 @@ h1, h2, h3 {
 }
 .input:focus {
   border-color: var(--primary);
+}
+.input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 .label {
   display: block;

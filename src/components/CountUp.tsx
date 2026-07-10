@@ -18,6 +18,16 @@ export default function CountUp({
   useEffect(() => {
     const el = ref.current
     if (!el) return
+
+    // The global reduced-motion CSS block cannot stop a requestAnimationFrame
+    // loop, so honour the preference here and render the final value at once.
+    const prefersReduced =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) {
+      setVal(to)
+      return
+    }
+
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {

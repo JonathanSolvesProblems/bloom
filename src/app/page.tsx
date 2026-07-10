@@ -111,7 +111,7 @@ export default function HomePage() {
               </div>
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-foreground">
                 Your local business, on marketing{' '}
-                <span className="font-serif italic font-normal text-brand-teal">autopilot.</span>
+                <span className="font-serif italic font-normal text-brand-teal-text">autopilot.</span>
               </h1>
               <p className="text-lg text-muted max-w-xl mt-6 leading-relaxed">
                 Bloom writes your weekly newsletter and social posts, emails the newsletter to your subscribers
@@ -139,6 +139,9 @@ export default function HomePage() {
 
         {/* Stat strip */}
         <section className="bg-ink-dark text-white py-10 px-6">
+          <p className="text-center text-white/45 text-[11px] uppercase tracking-[0.14em] mb-8">
+            What a Pro subscription delivers you in a year
+          </p>
           <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map((s) => (
               <div key={s.label}>
@@ -209,7 +212,7 @@ export default function HomePage() {
                 <h2 className="text-3xl sm:text-4xl font-bold text-white">AI that runs your marketing, not just suggests it.</h2>
                 <p className="text-white/60 mt-4 leading-relaxed">
                   A scheduled agent fires every Monday with no human in the loop. It writes the week, sends the newsletter,
-                  and records every step. This is a typical run.
+                  and records every step. The trace below is an illustrative example. The live feed shows the real runs.
                 </p>
                 <Link
                   href="/agent"
@@ -227,7 +230,7 @@ export default function HomePage() {
                     <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
                     <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
                     <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                    <span className="ml-2">bloom agent · weekly run</span>
+                    <span className="ml-2">bloom agent · example run</span>
                   </div>
                   {[
                     ['09:00:01', 'generate', '3 posts + 1 newsletter written', 'gemini-2.5-flash · 1.2s'],
@@ -380,7 +383,7 @@ export default function HomePage() {
 
               <Reveal delay={80} className="flex-1">
                 <div className="card h-full relative ring-2 ring-brand-emerald">
-                  <div className="absolute -top-3 left-6 bg-brand-emerald text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-6 bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Full autopilot
                   </div>
                   <div className="text-sm font-semibold text-brand-emerald uppercase tracking-wide mb-2">Pro</div>

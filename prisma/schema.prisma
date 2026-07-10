@@ -61,6 +61,9 @@ model WeeklyContent {
   subjectVariants   String?
   reasoning         String?
   qaScore           Int?
+  // The self-critique is a gate: when it rejects a draft the agent rewrites it once.
+  regenerated       Boolean   @default(false)
+  rejectedQaScore   Int?
   model             String?
   tokensUsed        Int?
   latencyMs         Int?

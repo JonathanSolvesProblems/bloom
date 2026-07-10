@@ -1,5 +1,5 @@
 import { db } from './db'
-import { generateWeeklyContent } from './gemini'
+import { generateWeeklyContent, QA_THRESHOLD } from './gemini'
 import { Resend } from 'resend'
 
 /** Monday (UTC date string) of the week the given date falls in. */
@@ -56,14 +56,25 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
   let generated = false
 
   if (!content) {
-    const c = await generateWeeklyContent({
-      name: business.name,
-      type: business.type,
-      city: business.city,
-      description: business.description,
-      brandVoice: business.brandVoice,
-      promotions: business.promotions,
+    // Week-to-week memory: the agent sees what it ran last week so it does not
+    // repeat the same theme or subject line.
+    const prior = await db.weeklyContent.findFirst({
+      where: { businessId, weekOf: { not: weekOf } },
+      orderBy: { createdAt: 'desc' },
+      select: { weeklyTheme: true, newsletterSubject: true },
     })
+
+    const c = await generateWeeklyContent(
+      {
+        name: business.name,
+        type: business.type,
+        city: business.city,
+        description: business.description,
+        brandVoice: business.brandVoice,
+        promotions: business.promotions,
+      },
+      prior ? { weeklyTheme: prior.weeklyTheme, chosenSubject: prior.newsletterSubject } : null
+    )
     const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
 
     try {
@@ -81,6 +92,8 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
           subjectVariants: JSON.stringify(c.subjectVariants),
           reasoning: c.reasoning,
           qaScore: c.qaScore,
+          regenerated: c.regenerated,
+          rejectedQaScore: c.rejectedQaScore,
           model: c.model,
           tokensUsed: c.tokensUsed,
           latencyMs: c.latencyMs,
@@ -128,9 +141,20 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
         await db.agentLog.create({
           data: {
             businessId,
-            action: 'qa_review',
-            summary: `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
-            details: JSON.stringify({ weekOf, qaScore: c.qaScore, qaNotes: c.qaNotes, model: c.model }),
+            action: c.regenerated ? 'qa_regenerated' : 'qa_review',
+            summary: c.regenerated
+              ? `Rejected its own draft (${c.rejectedQaScore}/100) and rewrote it. Accepted at ${c.qaScore}/100.`.slice(0, 200)
+              : `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
+            details: JSON.stringify({
+              weekOf,
+              threshold: QA_THRESHOLD,
+              qaScore: c.qaScore,
+              qaNotes: c.qaNotes,
+              regenerated: c.regenerated,
+              rejectedQaScore: c.rejectedQaScore,
+              rejectedQaNotes: c.rejectedQaNotes,
+              model: c.model,
+            }),
           },
         })
       }

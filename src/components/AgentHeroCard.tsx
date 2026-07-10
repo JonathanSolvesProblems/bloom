@@ -21,8 +21,19 @@ const LINES = [
 export default function AgentHeroCard() {
   const [lineIdx, setLineIdx] = useState(0)
   const [chars, setChars] = useState(0)
+  const [reduced, setReduced] = useState(false)
 
   useEffect(() => {
+    setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  }, [])
+
+  useEffect(() => {
+    // A setTimeout typewriter is JS, so the reduced-motion CSS block cannot stop
+    // it. Show the finished text and never cycle.
+    if (reduced) {
+      setChars(LINES[lineIdx].text.length)
+      return
+    }
     const line = LINES[lineIdx]
     if (chars < line.text.length) {
       const t = setTimeout(() => setChars((c) => c + 1), 22)
@@ -33,7 +44,7 @@ export default function AgentHeroCard() {
       setLineIdx((i) => (i + 1) % LINES.length)
     }, 1900)
     return () => clearTimeout(t)
-  }, [chars, lineIdx])
+  }, [chars, lineIdx, reduced])
 
   const line = LINES[lineIdx]
   const typed = line.text.slice(0, chars)
@@ -56,7 +67,7 @@ export default function AgentHeroCard() {
         </div>
       </div>
 
-      <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-brand-teal bg-brand-teal/10 px-2.5 py-1 rounded-full mb-3">
+      <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-brand-teal-text bg-brand-teal/10 px-2.5 py-1 rounded-full mb-3">
         <Sparkles className="w-3 h-3" />
         {line.label}
       </div>

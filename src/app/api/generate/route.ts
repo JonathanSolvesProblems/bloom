@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
         subjectVariants: JSON.stringify(c.subjectVariants),
         reasoning: c.reasoning,
         qaScore: c.qaScore,
+        regenerated: c.regenerated,
+        rejectedQaScore: c.rejectedQaScore,
         model: c.model,
         tokensUsed: c.tokensUsed,
         latencyMs: c.latencyMs,
@@ -107,9 +109,19 @@ export async function POST(request: NextRequest) {
       await db.agentLog.create({
         data: {
           businessId,
-          action: 'qa_review',
-          summary: `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
-          details: JSON.stringify({ weekOf, qaScore: c.qaScore, qaNotes: c.qaNotes, model: c.model }),
+          action: c.regenerated ? 'qa_regenerated' : 'qa_review',
+          summary: c.regenerated
+            ? `Rejected its own draft (${c.rejectedQaScore}/100) and rewrote it. Accepted at ${c.qaScore}/100.`.slice(0, 200)
+            : `Self-QA scored ${c.qaScore}/100${c.qaNotes ? '. ' + c.qaNotes : ''}`.slice(0, 200),
+          details: JSON.stringify({
+            weekOf,
+            qaScore: c.qaScore,
+            qaNotes: c.qaNotes,
+            regenerated: c.regenerated,
+            rejectedQaScore: c.rejectedQaScore,
+            rejectedQaNotes: c.rejectedQaNotes,
+            model: c.model,
+          }),
         },
       })
     }

@@ -283,7 +283,7 @@ export default function SetupPage() {
                 {errors.ownerEmail && <p className="error-text">{errors.ownerEmail}</p>}
               </div>
 
-              <div className="bg-brand-emerald/10 rounded-lg p-4 text-sm text-emerald-800">
+              <div className="bg-brand-emerald/10 border border-brand-emerald/25 rounded-lg p-4 text-sm text-foreground">
                 <strong>What happens next:</strong> Bloom will generate a preview of your week&apos;s content (3 social posts + a newsletter draft) instantly. No credit card needed to see it.
               </div>
             </div>

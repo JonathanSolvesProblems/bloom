@@ -144,8 +144,11 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               </div>
               <div className="border-t border-border pt-4">
                 <div className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Email preview</div>
+                {/* The newsletter is an email authored for a white inbox. Frame it
+                    on a fixed light canvas so it stays readable in dark mode and
+                    matches how it will actually render for a subscriber. */}
                 <div
-                  className="border border-border rounded-lg overflow-hidden text-sm"
+                  className="border border-border rounded-lg overflow-hidden text-sm bg-white text-[#111827]"
                   dangerouslySetInnerHTML={{ __html: content.newsletterHtml }}
                 />
               </div>
@@ -160,7 +163,7 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href={`/api/checkout?businessId=${businessId}`}
-                  className="bg-card text-emerald-700 font-semibold py-3 px-8 rounded-lg hover:bg-brand-emerald/10 transition-colors flex items-center justify-center gap-2"
+                  className="bg-white text-emerald-700 font-semibold py-3 px-8 rounded-lg hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
                 >
                   Activate for $99/month
                   <ArrowRight className="w-4 h-4" />
