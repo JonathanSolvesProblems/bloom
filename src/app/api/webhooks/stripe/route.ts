@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { db } from '@/lib/db'
-import { waitUntil } from '@vercel/functions'
+import { after } from '@/lib/after'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
     event.type === 'checkout.session.completed' ||
     event.type === 'customer.subscription.updated'
   ) {
-    waitUntil(handleSubscriptionEvent(event))
+    after(handleSubscriptionEvent(event))
   }
 
   if (
     event.type === 'customer.subscription.deleted' ||
     event.type === 'invoice.payment_failed'
   ) {
-    waitUntil(handleCancellation(event))
+    after(handleCancellation(event))
   }
 
   return Response.json({ received: true })

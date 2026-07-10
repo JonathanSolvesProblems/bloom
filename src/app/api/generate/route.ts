@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { waitUntil } from '@vercel/functions'
+import { after } from '@/lib/after'
 import { db } from '@/lib/db'
 import { generateWeeklyContent, QA_THRESHOLD } from '@/lib/gemini'
 import { rewriteInBackground } from '@/lib/agent-run'
 import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
 // The response lands in ~25s, but the background rewrite runs inside this same
-// invocation via waitUntil and counts against maxDuration. Give it headroom.
+// invocation via after() and counts against maxDuration. Give it headroom.
 export const maxDuration = 120
 
 const schema = z.object({ businessId: z.string().cuid() })
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     // The agent judged its own draft below the bar: reject and rewrite it after
     // the response, upgrading the stored content in place.
     if (c.qaScore !== null && c.qaScore < QA_THRESHOLD) {
-      waitUntil(
+      after(
         rewriteInBackground({
           businessId,
           contentId: saved.id,

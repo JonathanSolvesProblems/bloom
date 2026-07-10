@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { waitUntil } from '@vercel/functions'
+import { after } from '@/lib/after'
 import { db } from '@/lib/db'
 import { runWeeklyForBusiness, sleep } from '@/lib/agent-run'
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   // team limit or Vertex quota all at once.
   const delayMs = typeof body.delayMs === 'number' ? Math.min(Math.max(body.delayMs, 0), 240_000) : 0
 
-  waitUntil(
+  after(
     (async () => {
       if (delayMs) await sleep(delayMs)
       await runWeeklyForBusiness(businessId)

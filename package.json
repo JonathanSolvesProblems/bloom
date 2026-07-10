@@ -16,7 +16,6 @@
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@stripe/stripe-js": "^9.8.0",
-    "@vercel/functions": "^3.7.4",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.22.0",
     "next": "16.2.9",
