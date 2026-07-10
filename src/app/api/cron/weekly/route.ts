@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { getMondayOf, appBaseUrl } from '@/lib/agent-run'
+import { getMondayOf, internalBaseUrl } from '@/lib/agent-run'
 import { pruneRateLimits } from '@/lib/ratelimit'
 
 export const maxDuration = 60
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const base = appBaseUrl()
+  const base = internalBaseUrl()
   if (!base) return Response.json({ error: 'Server misconfigured: no app base URL' }, { status: 500 })
 
   const weekOf = getMondayOf(new Date())
@@ -30,15 +30,23 @@ export async function GET(request: NextRequest) {
   const active = await db.business.findMany({
     where: { subscriptionStatus: 'active' },
     orderBy: { createdAt: 'asc' },
-    select: { id: true },
+    select: { id: true, tier: true },
   })
 
-  const alreadyDelivered = await db.weeklyContent.findMany({
-    where: { weekOf, newsletterSent: true },
-    select: { businessId: true },
+  const written = await db.weeklyContent.findMany({
+    where: { weekOf },
+    select: { businessId: true, newsletterSent: true },
   })
-  const done = new Set(alreadyDelivered.map((c: { businessId: string }) => c.businessId))
-  const todo = active.filter((b: { id: string }) => !done.has(b.id))
+
+  // A week is finished when there is nothing left for the agent to do. For Pro
+  // that means the newsletter went out; for Starter it means the content exists,
+  // since Starter never sends and `newsletterSent` stays false forever. Keying
+  // only on newsletterSent would re-dispatch every Starter business on each tick.
+  const sent = new Set(written.filter((c) => c.newsletterSent).map((c) => c.businessId))
+  const hasContent = new Set(written.map((c) => c.businessId))
+  const todo = active.filter((b: { id: string; tier: string }) =>
+    b.tier === 'pro' ? !sent.has(b.id) : !hasContent.has(b.id)
+  )
 
   // Stagger the herd. Resend caps a team at 5 requests/second (429 beyond), and
   // Vertex quota is shared too, so spread the workers rather than firing every

@@ -114,6 +114,18 @@ export function appBaseUrl(): string {
   return ''
 }
 
+/**
+ * Where the dispatcher reaches its own workers.
+ *
+ * On a self-hosted box this is the container's own address on the docker
+ * network, so the weekly fan-out never leaves the machine: no public DNS, no
+ * hairpin back through the reverse proxy, no dependency on a valid certificate.
+ * Unset on Vercel, where the public URL is the only way in.
+ */
+export function internalBaseUrl(): string {
+  return process.env.INTERNAL_APP_URL || appBaseUrl()
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))

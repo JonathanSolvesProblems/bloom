@@ -1,0 +1,69 @@
+# Lives at ~/experimental-projects/bloom/docker-compose.yml on the OVH box.
+#
+# Bloom is a Next.js standalone server. It receives inbound HTTPS, so unlike
+# loose-ends it joins the shared `web` network and is routed by the box's
+# existing Traefik (entrypoint websecure, certresolver le, HTTP-01).
+#
+# Postgres is Neon, not a container here. The only state on this box is the image.
+#
+# Built from the public repo checked out in ./app:
+#   git -C app pull && docker compose up -d --build
+services:
+  app:
+    build:
+      context: ./app
+      args:
+        # Baked in at build time: NEXT_PUBLIC_* is inlined into the client bundle,
+        # so passing it only at runtime would leave the browser with an empty value.
+        NEXT_PUBLIC_APP_URL: https://bloom.jonathanandrei.com
+    container_name: bloom
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - web
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: web
+      traefik.http.routers.bloom.rule: Host(`bloom.jonathanandrei.com`)
+      traefik.http.routers.bloom.entrypoints: websecure
+      traefik.http.routers.bloom.tls.certresolver: le
+      traefik.http.services.bloom.loadbalancer.server.port: "3000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # The weekly agent has no Vercel Cron here, so a sidecar wakes it up. It only
+  # holds the shared secret and calls the public dispatcher endpoint; all the
+  # real work (fan-out, stagger, generation, delivery) stays in the app.
+  #
+  # Monday 13:00 UTC, matching vercel.json so the schedule does not change with
+  # the host. Weekly content is keyed @@unique([businessId, weekOf]), so a double
+  # fire is a no-op rather than a double send.
+  cron:
+    image: alpine:3.20
+    container_name: bloom-cron
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - app
+    networks:
+      - web
+    volumes:
+      - ./app/ops/weekly-tick.sh:/weekly-tick.sh:ro
+    command: >
+      sh -c "apk add --no-cache curl >/dev/null &&
+             printenv CRON_SECRET > /run/cron-secret && chmod 600 /run/cron-secret &&
+             echo '0 13 * * 1 sh /weekly-tick.sh >> /var/log/bloom-cron.log 2>&1' > /etc/crontabs/root &&
+             touch /var/log/bloom-cron.log &&
+             crond -f -l 8"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  web:
+    external: true
