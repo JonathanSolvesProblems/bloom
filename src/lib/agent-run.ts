@@ -147,8 +147,8 @@ async function sendBatchWithRetry(
   return []
 }
 
-// A French newsletter ending in an English "Unsubscribe" reads as machine output,
-// and in Quebec the commercial communication is expected to be in French.
+// A French newsletter ending in an English "Unsubscribe" reads as machine output.
+// Anti-spam law also expects the commercial message in the reader's own language.
 const UNSUB_COPY: Record<string, { line: (b: string) => string; link: string }> = {
   en: { line: (b) => `You are receiving this because you subscribed to updates from ${b}.`, link: 'Unsubscribe' },
   fr: { line: (b) => `Vous recevez ce courriel parce que vous êtes abonné aux nouvelles de ${b}.`, link: 'Se désabonner' },

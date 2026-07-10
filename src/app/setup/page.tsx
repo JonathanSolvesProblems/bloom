@@ -195,12 +195,12 @@ export default function SetupPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">City</label>
-                  <input className="input" placeholder="e.g. Montreal" value={form.city} onChange={(e) => set('city', e.target.value)} />
+                  <input className="input" placeholder="e.g. Toronto" value={form.city} onChange={(e) => set('city', e.target.value)} />
                   {errors.city && <p className="error-text">{errors.city}</p>}
                 </div>
                 <div>
                   <label className="label">Province / State</label>
-                  <input className="input" placeholder="e.g. QC" value={form.province} onChange={(e) => set('province', e.target.value)} />
+                  <input className="input" placeholder="e.g. ON" value={form.province} onChange={(e) => set('province', e.target.value)} />
                 </div>
               </div>
 
@@ -209,7 +209,7 @@ export default function SetupPage() {
                 <textarea
                   className="input"
                   style={{ minHeight: 100, resize: 'vertical' }}
-                  placeholder="e.g. We're a family-run Italian bistro in Old Montreal known for our handmade pasta and cozy atmosphere. Open for lunch and dinner, Tuesday through Sunday."
+                  placeholder="e.g. We're a family-run Italian bistro in Toronto known for our handmade pasta and cozy atmosphere. Open for lunch and dinner, Tuesday through Sunday."
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
                 />
