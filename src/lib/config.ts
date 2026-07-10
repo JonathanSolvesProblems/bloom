@@ -5,7 +5,7 @@
  * monitored inbox before real charges are switched on. Override with
  * NEXT_PUBLIC_SUPPORT_EMAIL; the default is an address on Bloom's own domain.
  */
-export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bloom.jonathanandrei.com'
+export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'jonathan@jonathanandrei.com'
 
 /** Trading name and operator shown on legal pages. */
 export const OPERATOR = 'Jonathan Andrei'
