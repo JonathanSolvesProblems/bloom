@@ -495,6 +495,9 @@ export default function HomePage() {
               <Link href="/setup" className="hover:text-foreground transition-colors">
                 Get started
               </Link>
+              <Link href="/recover" className="hover:text-foreground transition-colors">
+                Find my dashboard
+              </Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">
                 Terms
               </Link>
