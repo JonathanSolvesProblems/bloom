@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { db } from '@/lib/db'
-import { after } from '@/lib/after'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -19,18 +18,25 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  if (
-    event.type === 'checkout.session.completed' ||
-    event.type === 'customer.subscription.updated'
-  ) {
-    after(handleSubscriptionEvent(event))
-  }
-
-  if (
-    event.type === 'customer.subscription.deleted' ||
-    event.type === 'invoice.payment_failed'
-  ) {
-    after(handleCancellation(event))
+  // The entitlement write is what grants or revokes paid service, so it runs
+  // synchronously and any failure returns 500. Stripe retries a non-2xx webhook
+  // for hours; deferring this to after() would return 200, and a transient DB
+  // blip would then silently strand a customer who paid, with no redelivery.
+  try {
+    if (
+      event.type === 'checkout.session.completed' ||
+      event.type === 'customer.subscription.updated'
+    ) {
+      await handleSubscriptionEvent(event)
+    } else if (
+      event.type === 'customer.subscription.deleted' ||
+      event.type === 'invoice.payment_failed'
+    ) {
+      await handleCancellation(event)
+    }
+  } catch (err) {
+    console.error('Stripe webhook handler failed:', err)
+    return Response.json({ error: 'Handler failed, retry' }, { status: 500 })
   }
 
   return Response.json({ received: true })
@@ -101,15 +107,56 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   })
 }
 
+/**
+ * The subscription id on an invoice moved between Stripe API versions: older
+ * ones expose `invoice.subscription`, newer ones nest it under
+ * `parent.subscription_details.subscription`. Read whichever is present so the
+ * handler works regardless of the account's pinned API version.
+ */
+function invoiceSubscriptionId(inv: Stripe.Invoice): string | null {
+  const i = inv as unknown as {
+    subscription?: string | { id?: string } | null
+    parent?: { subscription_details?: { subscription?: string | { id?: string } | null } | null } | null
+  }
+  const direct = i.subscription
+  if (typeof direct === 'string') return direct
+  if (direct && typeof direct === 'object' && direct.id) return direct.id
+  const nested = i.parent?.subscription_details?.subscription
+  if (typeof nested === 'string') return nested
+  if (nested && typeof nested === 'object' && nested.id) return nested.id
+  return null
+}
+
 async function handleCancellation(event: Stripe.Event) {
   let customerId: string | null = null
+  let reason: string = event.type
 
   if (event.type === 'customer.subscription.deleted') {
+    // A truly ended subscription. Revoke service.
     const sub = event.data.object as Stripe.Subscription
     customerId = sub.customer as string
   } else if (event.type === 'invoice.payment_failed') {
+    // A failed charge is NOT a cancellation. Stripe keeps the subscription
+    // active and dunning-retries for days, and this event also fires when the
+    // Starter -> Pro upgrade proration invoice declines while the base plan is
+    // still fully paid. Revoking here would cancel service the customer is still
+    // entitled to and that Stripe would have recovered on its own. Only pause if
+    // the subscription itself has actually reached a dead state.
     const inv = event.data.object as Stripe.Invoice
     customerId = inv.customer as string
+    const subId = invoiceSubscriptionId(inv)
+    if (!subId) return
+
+    let sub: Stripe.Subscription
+    try {
+      sub = await getStripe().subscriptions.retrieve(subId)
+    } catch {
+      // Can't confirm the state: leave entitlement untouched rather than risk a
+      // wrongful cancellation. Stripe will fire subscription.deleted if it dies.
+      return
+    }
+    if (sub.status !== 'canceled' && sub.status !== 'unpaid') return
+    reason = `invoice.payment_failed (subscription ${sub.status})`
   }
 
   if (!customerId) return
@@ -128,9 +175,9 @@ async function handleCancellation(event: Stripe.Event) {
       action: 'paused_delivery',
       summary:
         event.type === 'invoice.payment_failed'
-          ? 'Delivery paused: payment failed'
+          ? 'Delivery paused: subscription lapsed after repeated failed payments'
           : 'Delivery paused: subscription cancelled',
-      details: JSON.stringify({ reason: event.type }),
+      details: JSON.stringify({ reason }),
     },
   })
 }

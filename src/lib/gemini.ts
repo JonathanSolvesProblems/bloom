@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai'
+import { sanitizeNewsletterHtml } from './sanitize-html'
 
 const MODEL = 'gemini-2.5-flash'
 
@@ -220,7 +221,7 @@ DECIDE AND CREATE this week's marketing. Return a JSON object with exactly these
   "post2": "Second social post. 50-80 words. Feature the promotion, end with a clear call to action.",
   "post3": "Third social post. 40-70 words. Community-focused or behind-the-scenes. Builds trust and personality.",
   "newsletterSubject": "Use exactly the same value as chosenSubject.",
-  "newsletterHtml": "Full HTML email body (150-200 words). Simple inline-styled HTML: a header with the business name, a short paragraph of news/promotions tied to the weekly theme, a highlight section (light background div), and a closing CTA button linking to '#'. Mobile-friendly and readable."
+  "newsletterHtml": "Full HTML email body (150-200 words). Simple inline-styled HTML: a header with the business name, a short paragraph of news/promotions tied to the weekly theme, and a highlight section (light background div). End with a clear call to action written as TEXT (for example inviting the reader to reply, call, or visit this week). Do NOT include placeholder links or buttons with href='#' or empty hrefs; only link to a real URL if the owner provided one, otherwise keep the call to action as text. Mobile-friendly and readable."
 }
 
 Make everything sound authentically human, NOT like AI wrote it. Only return the JSON object. No markdown, no extra text.`
@@ -235,7 +236,9 @@ function toDraft(data: Record<string, unknown>, business: Business): Draft {
     post2: str(data.post2),
     post3: str(data.post3),
     newsletterSubject: chosenSubject,
-    newsletterHtml: str(data.newsletterHtml),
+    // Sanitize at the single choke point before this HTML is stored, rendered
+    // on the public preview, or emailed. See sanitizeNewsletterHtml.
+    newsletterHtml: sanitizeNewsletterHtml(str(data.newsletterHtml)),
     weeklyTheme: str(data.weeklyTheme),
     featuredPromotion: str(data.featuredPromotion, hasPromo ? String(business.promotions) : ''),
     subjectVariants: variants,
@@ -315,8 +318,8 @@ export async function generateWeeklyContent(
   let rejectedQaNotes = ''
 
   // A rewrite is a second full generation (~25s). Only start one when the caller
-  // allows it AND enough of the 60s function budget remains, or we trade a bad
-  // draft for a 504.
+  // allows it AND enough of the 60s function budget remains, otherwise a bad
+  // draft is traded for a 504.
   const budgetLeft = Date.now() - t0 < 30_000
 
   if (allowRewrite && budgetLeft && qaScore !== null && qaScore < QA_THRESHOLD) {

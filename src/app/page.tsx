@@ -27,6 +27,7 @@ import SiteNav from '@/components/SiteNav'
 import AgentHeroCard from '@/components/AgentHeroCard'
 import CountUp from '@/components/CountUp'
 import Reveal from '@/components/Reveal'
+import { SUPPORT_EMAIL } from '@/lib/config'
 
 const stats = [
   { to: 156, suffix: '', label: 'social posts written a year' },
@@ -483,16 +484,32 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t border-border bg-surface py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-brand-teal" />
-            <span className="font-display font-semibold text-foreground">Bloom</span>
-            <span className="text-muted">· AI marketing for local businesses</span>
+        <div className="max-w-6xl mx-auto flex flex-col gap-6 text-sm text-muted">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-brand-teal" />
+              <span className="font-display font-semibold text-foreground">Bloom</span>
+              <span className="text-muted">· AI marketing for local businesses</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+              <Link href="/setup" className="hover:text-foreground transition-colors">
+                Get started
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link href="/refunds" className="hover:text-foreground transition-colors">
+                Refunds
+              </Link>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-foreground transition-colors">
+                Contact
+              </a>
+            </div>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/setup" className="hover:text-foreground transition-colors">
-              Get started
-            </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border pt-6 text-xs">
             <a
               href="https://jonathanandrei.com"
               target="_blank"

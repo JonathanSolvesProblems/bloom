@@ -64,6 +64,7 @@ export default async function DashboardPage({
   const isPro = isActive && business.tier === 'pro'
   const subscriberCount = business.subscribers.length
   const tokenQuery = encodeURIComponent(t)
+  const hasMailingAddress = !!business.mailingAddress?.trim()
 
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -89,7 +90,7 @@ export default async function DashboardPage({
             </Link>
             {isActive ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-brand-emerald/10 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-1.5 bg-brand-emerald/10 text-brand-emerald-text text-xs font-semibold px-3 py-1.5 rounded-full">
                   <Zap className="w-3 h-3" /> {isPro ? 'Pro' : 'Starter'}
                 </div>
                 {!isPro && (
@@ -151,6 +152,19 @@ export default async function DashboardPage({
           </div>
         )}
 
+        {isPro && !hasMailingAddress && (
+          <div className="bg-accent-coral/[0.08] border border-accent-coral/30 rounded-xl p-5 flex items-start gap-4">
+            <Mail className="w-5 h-5 text-accent-coral-strong shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">Add a mailing address to start sending</p>
+              <p className="text-sm text-muted mt-1">
+                Anti-spam law requires a real postal address in every newsletter. Until you add one below, Bloom writes
+                your content but holds the Monday send.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
@@ -197,13 +211,21 @@ export default async function DashboardPage({
                   <div className="text-xs font-semibold text-muted mb-1">Newsletter subject</div>
                   <p className="text-sm font-medium text-foreground">{latestContent.newsletterSubject}</p>
                   {latestContent.newsletterSent ? (
-                    <div className="flex items-center gap-1 text-xs text-emerald-600 mt-2">
+                    <div className="flex items-center gap-1 text-xs text-brand-emerald-text mt-2">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Sent to {latestContent.subscriberCount} subscribers
                     </div>
+                  ) : isPro ? (
+                    <div className="text-xs text-muted mt-2 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> Sends automatically on Monday
+                    </div>
+                  ) : isActive ? (
+                    <div className="text-xs text-muted mt-2 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Ready for you to publish
+                    </div>
                   ) : (
                     <div className="text-xs text-muted mt-2 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> Will be sent next Monday
+                      <Clock className="w-3.5 h-3.5" /> Activate to schedule sending
                     </div>
                   )}
                 </div>
@@ -319,6 +341,73 @@ export default async function DashboardPage({
 
         {/* Promotions editor */}
         <PromotionsEditor businessId={businessId} currentPromotions={business.promotions ?? ''} token={t} />
+
+        {/* Business details + subscription */}
+        <SettingsCard
+          businessId={businessId}
+          token={t}
+          mailingAddress={business.mailingAddress ?? ''}
+          isActive={isActive}
+          planLabel={isPro ? 'Pro' : isActive ? 'Starter' : 'Free'}
+        />
+      </div>
+    </div>
+  )
+}
+
+function SettingsCard({
+  businessId,
+  token,
+  mailingAddress,
+  isActive,
+  planLabel,
+}: {
+  businessId: string
+  token: string
+  mailingAddress: string
+  isActive: boolean
+  planLabel: string
+}) {
+  return (
+    <div className="card bg-card">
+      <h2 className="font-semibold text-foreground mb-2">Business details</h2>
+      <p className="text-sm text-muted mb-4">
+        Your mailing address appears in the footer of every newsletter. It is required by anti-spam law, so Pro sending
+        stays on hold until it is set. A street address or PO box is fine.
+      </p>
+      <form action={`/api/businesses/${businessId}/promotions`} method="POST">
+        <input type="hidden" name="t" value={token} />
+        <input
+          name="mailingAddress"
+          className="input"
+          defaultValue={mailingAddress}
+          placeholder="123 Queen St W, Toronto, ON M5H 2M9, Canada"
+          maxLength={200}
+        />
+        <div className="flex justify-end mt-3">
+          <button type="submit" className="btn-primary text-sm py-2 px-4">
+            Save address
+          </button>
+        </div>
+      </form>
+
+      <div className="border-t border-border mt-5 pt-5 flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-foreground">Current plan: {planLabel}</div>
+          {isActive && (
+            <div className="text-xs text-muted mt-0.5">Cancel anytime. Your content stays until the period ends.</div>
+          )}
+        </div>
+        {isActive && (
+          <form action={`/api/cancel?businessId=${businessId}&t=${encodeURIComponent(token)}`} method="post">
+            <button
+              type="submit"
+              className="text-sm py-2 px-4 rounded-lg border border-border text-muted hover:text-foreground hover:border-accent-coral/40 transition-colors"
+            >
+              Cancel subscription
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )

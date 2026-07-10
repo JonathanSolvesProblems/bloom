@@ -12,6 +12,10 @@ const schema = z.object({
   description: z.string().min(10).max(1000),
   brandVoice: z.enum(['friendly', 'professional', 'casual', 'bold', 'elegant']).default('friendly'),
   contentLanguage: z.enum(['en', 'fr', 'es', 'pt', 'it', 'de']).default('en'),
+  // Optional at signup so the free preview stays frictionless. It is required
+  // before Pro can email (enforced in the send path), and editable in the
+  // dashboard, so a new owner is never blocked from seeing their first content.
+  mailingAddress: z.string().max(200).optional(),
   promotions: z.string().max(500).optional(),
   ownerName: z.string().min(1).max(100),
   ownerEmail: z.string().email(),

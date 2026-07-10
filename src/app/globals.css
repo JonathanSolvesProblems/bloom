@@ -16,6 +16,9 @@
   --primary-light: #d1fae5;
 
   --brand-emerald: #10b981;
+  /* Emerald used as TEXT on tinted/translucent grounds. #10b981 is too light to
+     read on white; this darkens for light mode and lightens again on dark. */
+  --brand-emerald-text: #047857;
   --brand-teal: #14b8a6;
   /* Teal used as TEXT on light grounds; #14b8a6 was 2.49:1. */
   --brand-teal-text: #0f766e;
@@ -45,8 +48,9 @@
   --glass: rgba(15, 32, 25, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --ink-dark: #0e211a;
-  /* On dark grounds the teal text must lighten, not darken. */
+  /* On dark grounds these text colors must lighten, not darken. */
   --brand-teal-text: #5eead4;
+  --brand-emerald-text: #6ee7b7;
 }
 
 @theme inline {
@@ -62,6 +66,7 @@
   --color-primary-light: var(--primary-light);
 
   --color-brand-emerald: var(--brand-emerald);
+  --color-brand-emerald-text: var(--brand-emerald-text);
   --color-brand-teal: var(--brand-teal);
   --color-brand-teal-text: var(--brand-teal-text);
   --color-brand-cyan: var(--brand-cyan);

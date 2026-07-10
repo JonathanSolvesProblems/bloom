@@ -41,7 +41,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Stay in the loop</h1>
           <p className="text-muted">
-            Subscribe to get our weekly newsletter delivered straight to your inbox.
+            Subscribe to get the latest news and offers delivered straight to your inbox.
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-foreground mb-2">You&apos;re subscribed!</h2>
             <p className="text-muted text-sm">
-              Look out for our next newsletter, it arrives every Monday morning.
+              You&apos;re on the list. Look out for the next newsletter in your inbox.
             </p>
           </div>
         ) : (
@@ -85,7 +85,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
               )}
             </button>
             <p className="text-xs text-muted text-center">
-              Unsubscribe anytime. We never share your email.
+              Unsubscribe anytime. Your email is never shared.
             </p>
           </form>
         )}

@@ -20,7 +20,7 @@ export default function ThemeToggle() {
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
     // Persist first: if storage throws, the user still gets the visual change,
-    // but we never leave the DOM and storage disagreeing.
+    // but the DOM and storage never end up disagreeing.
     try {
       localStorage.setItem('theme', next)
     } catch {

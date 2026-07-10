@@ -146,7 +146,7 @@ async function sendBatchWithRetry(
     const { data, error } = await resend.batch.send(payload)
     if (!error) {
       // Keep the provider message ids. Acceptance is not delivery, and without
-      // these we can never check afterwards whether mail actually landed.
+      // these there is no way to check afterwards whether mail actually landed.
       const rows = (data as { data?: { id: string }[] } | null)?.data ?? []
       return rows.map((r) => r.id).filter(Boolean)
     }
@@ -170,13 +170,41 @@ const UNSUB_COPY: Record<string, { line: (b: string) => string; link: string }> 
   de: { line: (b) => `Du erhältst diese E-Mail, weil du Neuigkeiten von ${b} abonniert hast.`, link: 'Abmelden' },
 }
 
-function withUnsubscribe(html: string, unsubUrl: string, businessName: string, lang?: string | null): string {
+/** Escape text before it goes into the newsletter footer HTML. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * The email "From" display name is attacker-controlled (it is the business name).
+ * Strip anything that could break out of the RFC 5322 phrase or inject a header:
+ * quotes, angle brackets, and any control characters including CR/LF.
+ */
+function sanitizeSenderName(name: string): string {
+  const clean = name.replace(/[\r\n"<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+  return clean || 'Newsletter'
+}
+
+function withUnsubscribe(
+  html: string,
+  unsubUrl: string,
+  businessName: string,
+  mailingAddress: string,
+  lang?: string | null
+): string {
   const copy = UNSUB_COPY[(lang || 'en').toLowerCase()] ?? UNSUB_COPY.en
+  // The physical postal address is a hard requirement of CAN-SPAM and CASL.
+  const address = esc((mailingAddress || '').trim())
   return `${html}
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
 <p style="font-size:12px;line-height:1.5;color:#6b7280;text-align:center;font-family:sans-serif">
-  ${copy.line(businessName)}<br />
-  <a href="${unsubUrl}" style="color:#6b7280">${copy.link}</a>
+  ${copy.line(esc(businessName))}<br />
+  ${address ? `${address}<br />` : ''}
+  <a href="${esc(unsubUrl)}" style="color:#6b7280">${copy.link}</a>
 </p>`
 }
 
@@ -348,35 +376,85 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
     const fromDomain = process.env.RESEND_FROM_DOMAIN
     if (!fromDomain) throw new Error('RESEND_FROM_DOMAIN is not set; refusing to send from an unverified domain')
 
+    // Anti-spam law (CAN-SPAM, CASL) requires a real postal address on every
+    // commercial email. Refuse rather than send an unlawful newsletter.
+    if (!business.mailingAddress || !business.mailingAddress.trim()) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'delivery_skipped',
+          summary: 'Newsletter not sent: add a mailing address, required by anti-spam law, in your dashboard.',
+          details: JSON.stringify({ weekOf, reason: 'missing_mailing_address' }),
+        },
+      })
+      return { generated, sent: 0 }
+    }
+
     const base = appBaseUrl()
     if (!base) throw new Error('No app base URL; cannot build unsubscribe links')
 
+    // Claim the send atomically before emailing a single message. The read of
+    // newsletterSent above and this write are not one operation, so two workers
+    // (for instance both hosts firing the same Monday) could each pass the read
+    // and send the whole list twice. updateMany with newsletterSent:false in the
+    // WHERE lets exactly one worker flip it; a count of 0 means another worker
+    // already owns this send, so this one stops.
+    const claim = await db.weeklyContent.updateMany({
+      where: { id: content.id, newsletterSent: false },
+      data: { newsletterSent: true, newsletterSentAt: new Date() },
+    })
+    if (claim.count === 0) return { generated, sent: 0 }
+
     const resend = new Resend(apiKey)
-    const from = `${business.name} <newsletter@${fromDomain}>`
+    const from = `${sanitizeSenderName(business.name)} <newsletter@${fromDomain}>`
 
     const messageIds: string[] = []
 
-    // Resend's batch endpoint accepts at most 100 messages per call.
-    for (const group of chunk(business.subscribers, 100)) {
-      const payload = group.map((s: { id: string; email: string }) => {
-        const unsubUrl = `${base}/api/unsubscribe?s=${s.id}`
-        return {
-          from,
-          to: s.email,
-          subject: content!.newsletterSubject,
-          html: withUnsubscribe(content!.newsletterHtml, unsubUrl, business.name, business.contentLanguage),
-          headers: { 'List-Unsubscribe': `<${unsubUrl}>` },
-        }
-      })
+    try {
+      // Resend's batch endpoint accepts at most 100 messages per call.
+      for (const group of chunk(business.subscribers, 100)) {
+        const payload = group.map((s: { id: string; email: string }) => {
+          const unsubUrl = `${base}/api/unsubscribe?s=${s.id}`
+          return {
+            from,
+            to: s.email,
+            subject: content!.newsletterSubject,
+            html: withUnsubscribe(
+              content!.newsletterHtml,
+              unsubUrl,
+              business.name,
+              business.mailingAddress,
+              business.contentLanguage
+            ),
+            headers: {
+              'List-Unsubscribe': `<${unsubUrl}>`,
+              // RFC 8058: tells the inbox the List-Unsubscribe URL accepts a POST
+              // for true one-click unsubscribe, so Gmail/Apple show the button.
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
+          }
+        })
 
-      const ids = await sendBatchWithRetry(resend, payload)
-      messageIds.push(...ids)
-      sent += group.length
+        const ids = await sendBatchWithRetry(resend, payload)
+        messageIds.push(...ids)
+        sent += group.length
+      }
+    } catch (err) {
+      // The send failed partway. Deliberately DO NOT release the claim: some
+      // subscribers already received this week's email, and a retry would mail
+      // them again, which hurts sender reputation more than a rare short
+      // delivery. Record how far it got and rethrow so the worker logs an
+      // agent_error a human can act on.
+      await db.weeklyContent.update({
+        where: { id: content.id },
+        data: { subscriberCount: sent },
+      })
+      throw err
     }
 
     await db.weeklyContent.update({
       where: { id: content.id },
-      data: { newsletterSent: true, newsletterSentAt: new Date(), subscriberCount: sent },
+      data: { subscriberCount: sent },
     })
 
     await db.agentLog.create({

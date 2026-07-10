@@ -40,6 +40,7 @@ type FormData = {
   city: string
   province: string
   country: string
+  mailingAddress: string
   description: string
   brandVoice: string
   contentLanguage: string
@@ -61,6 +62,7 @@ export default function SetupPage() {
     city: '',
     province: '',
     country: 'CA',
+    mailingAddress: '',
     description: '',
     brandVoice: 'friendly',
     contentLanguage: 'en',
@@ -80,7 +82,7 @@ export default function SetupPage() {
       if (!form.name.trim()) errs.name = 'Business name is required'
       if (!form.type) errs.type = 'Select a business type'
       if (!form.city.trim()) errs.city = 'City is required'
-      if (!form.description.trim()) errs.description = 'Tell us about your business'
+      if (!form.description.trim()) errs.description = 'Add a short description of your business'
     }
     if (n === 2) {
       if (!form.brandVoice) errs.brandVoice = 'Pick a brand voice'
@@ -172,7 +174,7 @@ export default function SetupPage() {
           {/* Step 1: Business Info */}
           {step === 1 && (
             <div className="space-y-5">
-              <h2 className="text-2xl font-bold text-foreground">Tell us about your business</h2>
+              <h2 className="text-2xl font-bold text-foreground">About your business</h2>
               <p className="text-muted text-sm">This is how Bloom learns your voice and creates content that fits your brand.</p>
 
               <div>
@@ -202,6 +204,22 @@ export default function SetupPage() {
                   <label className="label">Province / State</label>
                   <input className="input" placeholder="e.g. ON" value={form.province} onChange={(e) => set('province', e.target.value)} />
                 </div>
+              </div>
+
+              <div>
+                <label className="label">
+                  Mailing address <span className="text-muted font-normal">(optional now, needed to email newsletters)</span>
+                </label>
+                <input
+                  className="input"
+                  placeholder="e.g. 123 Queen St W, Toronto, ON M5H 2M9"
+                  value={form.mailingAddress}
+                  onChange={(e) => set('mailingAddress', e.target.value)}
+                />
+                <p className="text-xs text-muted mt-1">
+                  Anti-spam law requires a real postal address in the footer of every newsletter. You can add or change
+                  this later.
+                </p>
               </div>
 
               <div>
@@ -291,7 +309,7 @@ export default function SetupPage() {
             <div className="space-y-5">
               <h2 className="text-2xl font-bold text-foreground">Almost done</h2>
               <p className="text-muted text-sm">
-                We&apos;ll send your AI-generated content preview to this email, plus your dashboard link.
+                Your preview opens on the next screen. This email is your account login for billing and your dashboard.
               </p>
 
               <div>

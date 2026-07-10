@@ -15,6 +15,10 @@ model Business {
   city                 String
   province             String          @default("")
   country              String          @default("CA")
+  // Physical mailing address shown in every newsletter footer. Anti-spam law
+  // (CAN-SPAM, CASL) requires a real postal address on commercial email, so the
+  // Pro send path refuses to deliver until this is set.
+  mailingAddress       String          @default("")
   description          String
   brandVoice           String          @default("friendly")
   // Language the agent writes the customer-facing content in (ISO 639-1).
@@ -31,6 +35,11 @@ model Business {
   subscribers          Subscriber[]
   weeklyContent        WeeklyContent[]
   agentLogs            AgentLog[]
+
+  // The weekly dispatcher filters on subscriptionStatus; the Stripe webhook
+  // looks a business up by stripeCustomerId. Both run on every event.
+  @@index([subscriptionStatus])
+  @@index([stripeCustomerId])
 }
 
 model Subscriber {
@@ -71,6 +80,8 @@ model WeeklyContent {
   latencyMs         Int?
 
   @@unique([businessId, weekOf])
+  // The dispatcher scans every row for the current weekOf on each run.
+  @@index([weekOf])
 }
 
 model AgentLog {
@@ -81,6 +92,10 @@ model AgentLog {
   action     String
   summary    String
   details    String?
+
+  // The public /agent feed and the dashboard both read newest-first, per business.
+  @@index([businessId, createdAt])
+  @@index([createdAt])
 }
 
 model RateLimit {
@@ -88,4 +103,7 @@ model RateLimit {
   key       String   @unique
   count     Int      @default(0)
   createdAt DateTime @default(now())
+
+  // pruneRateLimits deletes by age on every cron run.
+  @@index([createdAt])
 }

@@ -25,15 +25,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { businessId } = schema.parse(body)
 
-    const business = await db.business.findUniqueOrThrow({ where: { id: businessId } })
+    const business = await db.business.findUnique({ where: { id: businessId } })
+    if (!business) return Response.json({ error: 'Business not found' }, { status: 404 })
     const weekOf = getMondayOf(new Date())
 
-    // Free preview is one-time per business (cost control): reuse the sample they
-    // already got. Paying (active) businesses regenerate fresh content each week.
-    const existing =
-      business.subscriptionStatus === 'active'
-        ? await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
-        : await db.weeklyContent.findFirst({ where: { businessId }, orderBy: { createdAt: 'desc' } })
+    // Reuse this week's content if it already exists, for both free and paid.
+    // Keying on weekOf (not just businessId) means editing promotions clears the
+    // current-week row (see the promotions route), so a re-preview reflects the
+    // edit instead of silently returning last time's stale sample.
+    const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
     if (existing) {
       return Response.json({ content: existing })
     }
@@ -61,27 +61,39 @@ export async function POST(request: NextRequest) {
 
     const ownerGavePromo = !!business.promotions && business.promotions.trim().length > 0
 
-    const saved = await db.weeklyContent.create({
-      data: {
-        businessId,
-        weekOf,
-        post1: c.post1,
-        post2: c.post2,
-        post3: c.post3,
-        newsletterSubject: c.newsletterSubject,
-        newsletterHtml: c.newsletterHtml,
-        weeklyTheme: c.weeklyTheme,
-        featuredPromotion: c.featuredPromotion,
-        subjectVariants: JSON.stringify(c.subjectVariants),
-        reasoning: c.reasoning,
-        qaScore: c.qaScore,
-        regenerated: c.regenerated,
-        rejectedQaScore: c.rejectedQaScore,
-        model: c.model,
-        tokensUsed: c.tokensUsed,
-        latencyMs: c.latencyMs,
-      },
-    })
+    let saved
+    try {
+      saved = await db.weeklyContent.create({
+        data: {
+          businessId,
+          weekOf,
+          post1: c.post1,
+          post2: c.post2,
+          post3: c.post3,
+          newsletterSubject: c.newsletterSubject,
+          newsletterHtml: c.newsletterHtml,
+          weeklyTheme: c.weeklyTheme,
+          featuredPromotion: c.featuredPromotion,
+          subjectVariants: JSON.stringify(c.subjectVariants),
+          reasoning: c.reasoning,
+          qaScore: c.qaScore,
+          regenerated: c.regenerated,
+          rejectedQaScore: c.rejectedQaScore,
+          model: c.model,
+          tokensUsed: c.tokensUsed,
+          latencyMs: c.latencyMs,
+        },
+      })
+    } catch (e) {
+      // A second concurrent preview click won the @@unique([businessId, weekOf])
+      // race. Return the row it created instead of surfacing a 500 on the very
+      // top of the funnel.
+      if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'P2002') {
+        const now = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
+        if (now) return Response.json({ content: now })
+      }
+      throw e
+    }
 
     await db.agentLog.create({
       data: {
