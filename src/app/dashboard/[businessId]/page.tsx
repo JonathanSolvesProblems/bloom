@@ -23,6 +23,7 @@ const ACTION_STYLES: Record<string, { label: string; dot: string }> = {
   decided_promotion: { label: 'decide', dot: 'bg-brand-violet' },
   qa_review: { label: 'qa', dot: 'bg-brand-teal' },
   qa_regenerated: { label: 'rewrote', dot: 'bg-accent-coral' },
+  qa_failed: { label: 'qa n/a', dot: 'bg-muted' },
   paused_delivery: { label: 'pause', dot: 'bg-accent-coral' },
   agent_error: { label: 'error', dot: 'bg-red-500' },
 }

@@ -19,6 +19,7 @@ const ACTION_STYLES: Record<string, { label: string; cls: string }> = {
   decided_promotion: { label: 'decide', cls: 'bg-brand-violet/15 text-brand-violet' },
   qa_review: { label: 'qa', cls: 'bg-brand-teal/15 text-brand-teal' },
   qa_regenerated: { label: 'rewrote', cls: 'bg-accent-coral/15 text-accent-coral' },
+  qa_failed: { label: 'qa n/a', cls: 'bg-white/10 text-white/60' },
   paused_delivery: { label: 'pause', cls: 'bg-accent-coral/15 text-accent-coral' },
   agent_error: { label: 'error', cls: 'bg-red-500/15 text-red-500' },
 }

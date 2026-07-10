@@ -124,6 +124,15 @@ export async function POST(request: NextRequest) {
           }),
         },
       })
+    } else if (c.qaFailed) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'qa_failed',
+          summary: 'Self-QA could not score this run; content shipped ungated',
+          details: JSON.stringify({ weekOf, model: c.model }),
+        },
+      })
     }
 
     return Response.json({ content: saved })

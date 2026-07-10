@@ -157,6 +157,16 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
             }),
           },
         })
+      } else if (c.qaFailed) {
+        // Never hide a broken gate. If the agent could not critique itself, say so.
+        await db.agentLog.create({
+          data: {
+            businessId,
+            action: 'qa_failed',
+            summary: 'Self-QA could not score this run; content shipped ungated',
+            details: JSON.stringify({ weekOf, model: c.model }),
+          },
+        })
       }
     }
   }

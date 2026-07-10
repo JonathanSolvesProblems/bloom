@@ -1,6 +1,28 @@
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, Type } from '@google/genai'
 
 const MODEL = 'gemini-2.5-flash'
+
+/**
+ * Without a forced schema Gemini sometimes answers the QA prompt with an ARRAY
+ * of per-draft scores instead of one object. JSON.parse succeeds, data.score is
+ * undefined, the score silently becomes null, and the gate can never fire.
+ */
+const QA_SCHEMA = {
+  type: Type.OBJECT,
+  properties: { score: { type: Type.INTEGER }, notes: { type: Type.STRING } },
+  required: ['score', 'notes'],
+}
+
+function asObject(v: unknown): Record<string, unknown> {
+  if (Array.isArray(v)) {
+    const first = v.find((x) => x && typeof x === 'object')
+    return (first as Record<string, unknown>) ?? {}
+  }
+  if (v && typeof v === 'object') return v as Record<string, unknown>
+  return {}
+}
+
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
 /** Below this self-critique score the agent rejects its own draft and rewrites it once. */
 export const QA_THRESHOLD = 75
@@ -39,6 +61,7 @@ export interface WeeklyContentResult {
   // Self-critique, which actually gates
   qaScore: number | null
   qaNotes: string
+  qaFailed: boolean
   regenerated: boolean
   rejectedQaScore: number | null
   rejectedQaNotes: string
@@ -48,11 +71,11 @@ export interface WeeklyContentResult {
   latencyMs: number
 }
 
-function extractJson(text: string): Record<string, unknown> {
+function extractJson(text: string): unknown {
   try {
     return JSON.parse(text)
   } catch {
-    const m = text.match(/\{[\s\S]*\}/)
+    const m = text.match(/[[{][\s\S]*[\]}]/)
     if (m) {
       try {
         return JSON.parse(m[0])
@@ -64,11 +87,17 @@ function extractJson(text: string): Record<string, unknown> {
   }
 }
 
-async function generateJson(prompt: string): Promise<{ data: Record<string, unknown>; tokens: number }> {
+async function generateJson(
+  prompt: string,
+  responseSchema?: unknown
+): Promise<{ data: unknown; tokens: number }> {
+  const config: Record<string, unknown> = { responseMimeType: 'application/json' }
+  if (responseSchema) config.responseSchema = responseSchema
+
   const result = await client().models.generateContent({
     model: MODEL,
     contents: prompt,
-    config: { responseMimeType: 'application/json' },
+    config,
   })
   const data = extractJson(result.text ?? '')
   const tokens = result.usageMetadata?.totalTokenCount ?? 0
@@ -170,10 +199,13 @@ function toDraft(data: Record<string, unknown>, business: Business): Draft {
   }
 }
 
-/** Self-critique. Returns null score if the reviewer call fails. */
-async function review(draft: Draft, business: Business): Promise<{ score: number | null; notes: string; tokens: number }> {
+/** Self-critique. `failed` is true when the reviewer could not produce a score. */
+async function review(
+  draft: Draft,
+  business: Business
+): Promise<{ score: number | null; notes: string; tokens: number; failed: boolean }> {
   try {
-    const qaPrompt = `You are a strict marketing QA reviewer. Score this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice, from 0-100, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70.
+    const qaPrompt = `You are a strict marketing QA reviewer. Judge this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice AS A SET, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70.
 
 DRAFTS:
 - Post 1: ${draft.post1}
@@ -181,12 +213,29 @@ DRAFTS:
 - Post 3: ${draft.post3}
 - Newsletter subject: ${draft.newsletterSubject}
 
-Return JSON exactly: {"score": <integer 0-100>, "notes": "<one short sentence naming the single weakest thing>"}`
-    const { data, tokens } = await generateJson(qaPrompt)
-    const score = typeof data.score === 'number' ? Math.max(0, Math.min(100, Math.round(data.score))) : null
-    return { score, notes: str(data.notes), tokens }
-  } catch {
-    return { score: null, notes: '', tokens: 0 }
+Return ONE overall score from 0-100 for the whole set, and one short sentence naming the single weakest thing.`
+
+    const { data, tokens } = await generateJson(qaPrompt, QA_SCHEMA)
+
+    const obj = asObject(data)
+    let score = typeof obj.score === 'number' ? clamp(obj.score) : null
+
+    // Safety net: if the model still returned per-draft scores, take the harshest.
+    if (score === null && Array.isArray(data)) {
+      const nums = (data as unknown[])
+        .map((d) => (d && typeof d === 'object' ? (d as Record<string, unknown>).score : null))
+        .filter((n): n is number => typeof n === 'number')
+      if (nums.length) score = clamp(Math.min(...nums))
+    }
+
+    if (score === null) {
+      console.error('Self-QA returned no usable score:', JSON.stringify(data).slice(0, 200))
+      return { score: null, notes: '', tokens, failed: true }
+    }
+    return { score, notes: str(obj.notes), tokens, failed: false }
+  } catch (err) {
+    console.error('Self-QA review call failed:', err)
+    return { score: null, notes: '', tokens: 0, failed: true }
   }
 }
 
@@ -203,13 +252,14 @@ export async function generateWeeklyContent(business: Business, priorWeek: Prior
 
   const first = await generateJson(buildPrompt(business, priorWeek, null))
   tokens += first.tokens
-  let draft = toDraft(first.data, business)
+  let draft = toDraft(asObject(first.data), business)
 
   const firstReview = await review(draft, business)
   tokens += firstReview.tokens
 
   let qaScore = firstReview.score
   let qaNotes = firstReview.notes
+  let qaFailed = firstReview.failed
   let regenerated = false
   let rejectedQaScore: number | null = null
   let rejectedQaNotes = ''
@@ -222,11 +272,12 @@ export async function generateWeeklyContent(business: Business, priorWeek: Prior
     try {
       const second = await generateJson(buildPrompt(business, priorWeek, qaNotes || 'Too generic; not specific to this business.'))
       tokens += second.tokens
-      const retryDraft = toDraft(second.data, business)
+      const retryDraft = toDraft(asObject(second.data), business)
 
       const retryReview = await review(retryDraft, business)
       tokens += retryReview.tokens
       regenerated = true
+      qaFailed = retryReview.failed
 
       // Keep whichever attempt actually scored better.
       if ((retryReview.score ?? -1) >= (rejectedQaScore ?? -1)) {
@@ -251,6 +302,7 @@ export async function generateWeeklyContent(business: Business, priorWeek: Prior
     ...draft,
     qaScore,
     qaNotes,
+    qaFailed,
     regenerated,
     rejectedQaScore,
     rejectedQaNotes,
