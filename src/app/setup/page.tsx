@@ -208,7 +208,7 @@ export default function SetupPage() {
 
               <div>
                 <label className="label">
-                  Mailing address <span className="text-muted font-normal">(optional now, needed to email newsletters)</span>
+                  Business postal address <span className="text-muted font-normal">(optional now)</span>
                 </label>
                 <input
                   className="input"
@@ -217,8 +217,8 @@ export default function SetupPage() {
                   onChange={(e) => set('mailingAddress', e.target.value)}
                 />
                 <p className="text-xs text-muted mt-1">
-                  Anti-spam law requires a real postal address in the footer of every newsletter. You can add or change
-                  this later.
+                  A street address or PO box, not an email. Anti-spam law requires a real postal address in the footer
+                  of every newsletter, so this is needed before Pro can send. You can add it later.
                 </p>
               </div>
 

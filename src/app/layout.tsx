@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { Bricolage_Grotesque, Inter, Instrument_Serif, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
@@ -13,16 +14,24 @@ export const metadata: Metadata = {
     'Bloom is an AI marketing agent for local businesses. It writes your weekly newsletter and social posts, emails the newsletter to your subscribers automatically, and hands you ready-to-paste captions.',
 }
 
-// Runs in <head>, before first paint, so the saved theme applies with no flash.
-// <html> is marked suppressHydrationWarning because this script mutates it
-// before React hydrates; without that, React reconciles the attribute away and
-// the page snaps back to light on every refresh.
-const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem('theme');var t=(s==='dark'||s==='light')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');var d=document.documentElement;d.setAttribute('data-theme',t);d.style.colorScheme=t;}catch(e){}})();`
+// Belt-and-suspenders for the first visit (no cookie yet): runs in <head> before
+// first paint and applies the saved theme with no flash. The toggle writes both a
+// cookie and localStorage, so this prefers the cookie (which the server also
+// read), then localStorage, then the OS setting, and keeps all three in sync.
+const THEME_SCRIPT = `(function(){try{var d=document.documentElement;var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);var s=m?m[1]:localStorage.getItem('theme');var t=(s==='dark'||s==='light')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.setAttribute('data-theme',t);d.style.colorScheme=t;try{localStorage.setItem('theme',t)}catch(e){}}catch(e){}})();`
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Render the theme on the server from the cookie the toggle sets, so a refresh
+  // paints the right theme with zero dependence on client timing. This is what
+  // makes the setting actually stick across reloads.
+  const themeCookie = (await cookies()).get('theme')?.value
+  const theme = themeCookie === 'dark' || themeCookie === 'light' ? themeCookie : undefined
+
   return (
     <html
       lang="en"
+      data-theme={theme}
+      style={theme ? { colorScheme: theme } : undefined}
       suppressHydrationWarning
       className={`h-full ${bricolage.variable} ${inter.variable} ${instrument.variable} ${geistMono.variable}`}
     >

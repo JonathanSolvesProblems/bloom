@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { db } from '@/lib/db'
+import { publicBaseUrl } from '@/lib/config'
 
 /**
  * Cancel an active subscription. The site promises "cancel in one click
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const dashboard = `${request.nextUrl.origin}/dashboard/${businessId}?t=${encodeURIComponent(business.dashboardToken)}`
+  const dashboard = `${publicBaseUrl(request)}/dashboard/${businessId}?t=${encodeURIComponent(business.dashboardToken)}`
 
   if (!business.stripeSubscriptionId) {
     return Response.redirect(`${dashboard}&cancelled=1`, 303)

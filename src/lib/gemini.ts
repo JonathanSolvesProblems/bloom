@@ -224,7 +224,14 @@ DECIDE AND CREATE this week's marketing. Return a JSON object with exactly these
   "newsletterHtml": "Full HTML email body (150-200 words). Simple inline-styled HTML: a header with the business name, a short paragraph of news/promotions tied to the weekly theme, and a highlight section (light background div). End with a clear call to action written as TEXT (for example inviting the reader to reply, call, or visit this week). Do NOT include placeholder links or buttons with href='#' or empty hrefs; only link to a real URL if the owner provided one, otherwise keep the call to action as text. Mobile-friendly and readable."
 }
 
-Make everything sound authentically human, NOT like AI wrote it. Only return the JSON object. No markdown, no extra text.`
+STYLE RULES (these decide whether the content is usable):
+- NO emojis anywhere. Not in posts, subjects, the newsletter, or the headings. Zero.
+- Write the way the owner would text a regular customer: plain, specific, a little understated. Not like a marketer or an ad.
+- BANNED words and phrases (they read as AI or as hype): "unlock", "elevate", "transform", "empower", "buzzing", "passionate about", "dive in", "delight", "seamless", "curated", "journey", "game-changer", "take it to the next level", "we've got you covered", "in today's world", "look no further", "the perfect", "whether you're ... or ...", "we're excited to", "boasts", "nestled". Do not use exclamation marks more than once across all three posts.
+- Be concrete. Use specific details from the business description (real services, real neighbourhood, a real reason to come in this week). If you cannot be specific, say something small and true rather than something big and generic. A vague post is a failed post.
+- Vary the openings. Do not start every post with a rhetorical question.
+
+Only return the JSON object. No markdown, no extra text.`
 }
 
 function toDraft(data: Record<string, unknown>, business: Business): Draft {
@@ -253,7 +260,7 @@ async function review(
   business: Business
 ): Promise<{ score: number | null; notes: string; tokens: number; failed: boolean }> {
   try {
-    const qaPrompt = `You are a strict marketing QA reviewer and a native ${languageName(business)} speaker. The drafts below are written in ${languageName(business)}; judge them in that language and never penalise them for not being English. Judge this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice AS A SET, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70.
+    const qaPrompt = `You are a strict marketing QA reviewer and a native ${languageName(business)} speaker. The drafts below are written in ${languageName(business)}; judge them in that language and never penalise them for not being English. Judge this week's drafts for a ${business.type} with a ${business.brandVoice} brand voice AS A SET, on: brand-voice adherence, specificity (not generic), a clear call to action, and sounding human (no AI tells). Be harsh: generic filler scores below 70. Score AT MOST 40 if there is any emoji, or any hype/AI-tell word ("unlock", "elevate", "transform", "buzzing", "dive in", "delight", "seamless", "the perfect", "we're excited to"), or if the posts could belong to any business rather than this specific one.
 
 DRAFTS:
 - Post 1: ${draft.post1}

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { db } from '@/lib/db'
+import { publicBaseUrl } from '@/lib/config'
 
 export type Plan = 'starter' | 'pro'
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (!business) return Response.json({ error: 'Business not found' }, { status: 404 })
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-  const origin = request.nextUrl.origin
+  const origin = publicBaseUrl(request)
 
   // A subscriber who lands here again would otherwise buy a second subscription
   // and be charged twice. Send them back to the dashboard, where changing plan

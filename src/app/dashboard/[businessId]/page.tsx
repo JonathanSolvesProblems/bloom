@@ -370,10 +370,10 @@ function SettingsCard({
 }) {
   return (
     <div className="card bg-card">
-      <h2 className="font-semibold text-foreground mb-2">Business details</h2>
+      <h2 className="font-semibold text-foreground mb-2">Business postal address</h2>
       <p className="text-sm text-muted mb-4">
-        Your mailing address appears in the footer of every newsletter. It is required by anti-spam law, so Pro sending
-        stays on hold until it is set. A street address or PO box is fine.
+        A street address or PO box, not an email. It appears in the footer of every newsletter, which anti-spam law
+        requires, so Pro sending stays on hold until it is set.
       </p>
       <form action={`/api/businesses/${businessId}/promotions`} method="POST">
         <input type="hidden" name="t" value={token} />

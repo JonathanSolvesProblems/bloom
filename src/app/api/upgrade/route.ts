@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { db } from '@/lib/db'
 import { PLANS } from '../checkout/route'
+import { publicBaseUrl } from '@/lib/config'
 
 /**
  * Move an active Starter subscription up to Pro.
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const origin = request.nextUrl.origin
+  const origin = publicBaseUrl(request)
   const dashboard = `${origin}/dashboard/${businessId}?t=${encodeURIComponent(business.dashboardToken)}`
 
   if (business.tier === 'pro' && business.subscriptionStatus === 'active') {

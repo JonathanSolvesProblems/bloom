@@ -19,8 +19,10 @@ export default function ThemeToggle() {
 
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
-    // Persist first: if storage throws, the user still gets the visual change,
-    // but the DOM and storage never end up disagreeing.
+    // Persist to a cookie so the SERVER renders the right theme on the next load
+    // (the reliable part), and to localStorage so the pre-paint script agrees.
+    // A year-long cookie, path-wide, lax so it rides normal navigations.
+    document.cookie = `theme=${next};path=/;max-age=31536000;samesite=lax`
     try {
       localStorage.setItem('theme', next)
     } catch {
