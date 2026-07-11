@@ -199,7 +199,19 @@ Do NOT repeat last week's theme or subject line. Pick a fresh angle that builds 
 Rewrite it properly. Fix exactly what the critique names: be more specific to this business, sharpen the call to action, and make it sound like a human wrote it.`
     : ''
 
+  // Give the model the real date. Without it, it guesses the season from its
+  // training data and features holidays that have already passed.
+  const today = new Date().toLocaleDateString('en-CA', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/Toronto',
+  })
+
   return `You are an autonomous marketing agent running weekly marketing for a small local business. You do not just write text, you make decisions and explain them.
+
+TODAY IS ${today}. Only reference holidays, seasons, or events that are near this date or still ahead of it. Never feature something that has already passed.
 
 BUSINESS PROFILE:
 - Name: ${business.name}
