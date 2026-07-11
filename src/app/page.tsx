@@ -29,11 +29,12 @@ import CountUp from '@/components/CountUp'
 import Reveal from '@/components/Reveal'
 import { SUPPORT_EMAIL } from '@/lib/config'
 
-const stats = [
-  { to: 156, suffix: '', label: 'social posts written a year' },
-  { to: 52, suffix: '', label: 'newsletters sent automatically' },
-  { to: 78, suffix: ' hrs', label: 'of marketing work saved' },
-  { to: 100, suffix: '%', label: 'run by the AI agent' },
+// Real figures from 2026 small-business marketing surveys, used to frame the
+// problem honestly instead of projecting Bloom's own output as a benefit.
+const painStats = [
+  { to: 56, suffix: '%', label: 'of local owners get an hour or less a day for marketing' },
+  { to: 43, suffix: '%', label: 'say they cannot keep their content consistent' },
+  { to: 40, suffix: '%', label: 'less reach when you post irregularly instead of weekly' },
 ]
 
 const industries = [
@@ -115,12 +116,13 @@ export default function HomePage() {
                 AI marketing agent for local businesses
               </div>
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-foreground">
-                Your local business, on marketing{' '}
-                <span className="font-serif italic font-normal text-brand-teal-text">autopilot.</span>
+                Never skip another{' '}
+                <span className="font-serif italic font-normal text-brand-teal-text">week</span> of marketing.
               </h1>
               <p className="text-lg text-muted max-w-xl mt-6 leading-relaxed">
-                Bloom writes your weekly newsletter and social posts, emails the newsletter to your subscribers
-                automatically, and hands you ready-to-paste captions. Set it up once.
+                Most local owners get under an hour a day for marketing, so it slips, and posting irregularly quietly
+                costs up to 40% of your reach. Bloom is an AI agent that writes your posts and newsletter every Monday
+                and emails it to your subscribers for you. You set it up once.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-8">
                 <Link href="/setup" className="btn-primary text-base py-3 px-7">
@@ -142,20 +144,30 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Stat strip */}
-        <section className="bg-ink-dark text-white py-10 px-6">
-          <p className="text-center text-white/45 text-[11px] uppercase tracking-[0.14em] mb-8">
-            What a Pro subscription delivers you in a year
-          </p>
-          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((s) => (
-              <div key={s.label}>
-                <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
-                  <CountUp to={s.to} suffix={s.suffix} />
-                </div>
-                <div className="text-sm text-white/60 mt-1">{s.label}</div>
-              </div>
-            ))}
+        {/* The problem */}
+        <section className="bg-surface border-y border-border py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <Reveal>
+              <p className="text-center text-sm font-semibold text-brand-teal-text uppercase tracking-[0.14em] mb-3">
+                It is not a talent problem. It is a time problem.
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-center text-foreground max-w-2xl mx-auto">
+                Local businesses do not go quiet because they run out of ideas. They run out of Tuesdays.
+              </h2>
+            </Reveal>
+            <div className="grid sm:grid-cols-3 gap-8 mt-12 text-center">
+              {painStats.map((s, i) => (
+                <Reveal key={s.label} delay={i * 80}>
+                  <div className="font-mono text-4xl sm:text-5xl font-bold text-foreground">
+                    <CountUp to={s.to} suffix={s.suffix} />
+                  </div>
+                  <div className="text-sm text-muted mt-2 max-w-[15rem] mx-auto leading-relaxed">{s.label}</div>
+                </Reveal>
+              ))}
+            </div>
+            <p className="text-center text-xs text-muted mt-10">
+              Source: 2026 small-business marketing surveys (LocaliQ, TriNet, industry aggregates).
+            </p>
           </div>
         </section>
 
@@ -201,27 +213,27 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Agent command center (dark proof) */}
-        <section id="proof" className="relative overflow-hidden bg-ink-dark text-white py-24 px-6">
-          <div className="aurora opacity-25" />
+        {/* Agent command center (proof) */}
+        <section id="proof" className="relative overflow-hidden bg-surface border-y border-border py-24 px-6">
           <div className="relative z-10 max-w-6xl mx-auto">
             <Reveal>
               <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white/80 text-sm font-medium px-3.5 py-1.5 rounded-full mb-5">
+                <div className="inline-flex items-center gap-2 bg-card border border-border text-muted text-sm font-medium px-3.5 py-1.5 rounded-full mb-5">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-brand-emerald opacity-60 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-emerald" />
                   </span>
                   Live agent operations
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white">AI that runs your marketing, not just suggests it.</h2>
-                <p className="text-white/60 mt-4 leading-relaxed">
-                  A scheduled agent fires every Monday with no human in the loop. It writes the week, sends the newsletter,
-                  and records every step. The trace below is an illustrative example. The live feed shows the real runs.
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">AI that runs your marketing, not just suggests it.</h2>
+                <p className="text-muted mt-4 leading-relaxed">
+                  A scheduled agent fires every Monday with no human in the loop. It picks the angle, writes the week,
+                  scores its own draft, and on Pro sends the newsletter. The trace below is an illustrative example. The
+                  live feed shows the real runs.
                 </p>
                 <Link
                   href="/agent"
-                  className="inline-flex items-center gap-1.5 text-brand-emerald hover:text-white transition-colors mt-4 text-sm font-medium"
+                  className="inline-flex items-center gap-1.5 text-brand-teal-text hover:text-foreground transition-colors mt-4 text-sm font-medium"
                 >
                   View the live agent feed <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -230,7 +242,8 @@ export default function HomePage() {
 
             <div className="grid lg:grid-cols-3 gap-4 mt-10">
               <Reveal className="lg:col-span-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-5 font-mono text-[13px] leading-relaxed">
+                {/* Deliberately dark: this is a code console, not a themed surface. */}
+                <div className="rounded-2xl border border-white/10 bg-ink-dark shadow-lg p-5 font-mono text-[13px] leading-relaxed">
                   <div className="flex items-center gap-2 text-white/40 mb-4 text-xs">
                     <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
                     <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
@@ -238,9 +251,11 @@ export default function HomePage() {
                     <span className="ml-2">bloom agent · example run</span>
                   </div>
                   {[
-                    ['09:00:01', 'generate', '3 posts + 1 newsletter written', 'gemini-2.5-flash · 1.2s'],
-                    ['09:00:04', 'send', 'newsletter emailed to your subscribers', 'resend'],
-                    ['09:00:04', 'log', 'weekly run recorded to activity log', ''],
+                    ['09:00:01', 'decide', 'chose this week angle + promotion', ''],
+                    ['09:00:03', 'generate', '3 posts + 1 newsletter written', 'gemini-2.5-flash'],
+                    ['09:00:05', 'self-qa', 'scored draft, rewrote below 75', 'kept the better one'],
+                    ['09:00:07', 'send', 'newsletter emailed to subscribers', 'resend'],
+                    ['09:00:07', 'log', 'every step recorded to the feed', ''],
                   ].map(([time, action, msg, meta], i) => (
                     <div key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5 border-t border-white/5 first:border-0">
                       <span className="text-brand-emerald">{time}</span>
@@ -253,22 +268,22 @@ export default function HomePage() {
               </Reveal>
 
               <Reveal delay={100}>
-                <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 h-full flex flex-col gap-4">
-                  <div className="text-white/60 text-sm font-medium">Every week, on its own</div>
+                <div className="card h-full flex flex-col gap-4">
+                  <div className="text-muted text-sm font-medium">Every week, on its own</div>
                   {[
-                    { icon: <Sparkles className="w-4 h-4" />, label: 'Generate the week of content' },
-                    { icon: <Mail className="w-4 h-4" />, label: 'Email the newsletter' },
-                    { icon: <ScrollText className="w-4 h-4" />, label: 'Log every action' },
+                    { icon: <Sparkles className="w-4 h-4" />, label: 'Decide the angle and promotion' },
+                    { icon: <ScrollText className="w-4 h-4" />, label: 'Write and self-check the content' },
+                    { icon: <Mail className="w-4 h-4" />, label: 'Email the newsletter (Pro)' },
                   ].map((row) => (
-                    <div key={row.label} className="flex items-center gap-3 text-white">
-                      <span className="w-8 h-8 rounded-lg bg-brand-emerald/15 text-brand-emerald flex items-center justify-center">
+                    <div key={row.label} className="flex items-center gap-3 text-foreground">
+                      <span className="w-8 h-8 rounded-lg bg-brand-emerald/15 text-brand-emerald flex items-center justify-center shrink-0">
                         {row.icon}
                       </span>
                       <span className="text-sm">{row.label}</span>
                     </div>
                   ))}
-                  <div className="mt-auto pt-4 border-t border-white/10 text-xs text-white/50 font-mono">
-                    next run · Monday 9:00am
+                  <div className="mt-auto pt-4 border-t border-border text-xs text-muted font-mono">
+                    next run · Monday 13:00 UTC
                   </div>
                 </div>
               </Reveal>
