@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { generateWeeklyContent, QA_THRESHOLD } from '@/lib/gemini'
 import { rewriteInBackground } from '@/lib/agent-run'
 import { brandEmail } from '@/lib/email-template'
-import { allowRequest, LIMITS } from '@/lib/ratelimit'
+import { allowRequest, underGlobalCap, LIMITS, GLOBAL_LIMITS } from '@/lib/ratelimit'
 
 // The response lands in ~25s, but the background rewrite runs inside this same
 // invocation via after() and counts against maxDuration. Give it headroom.
@@ -58,6 +58,18 @@ export async function POST(request: NextRequest) {
     if (!(await allowRequest(request, 'generate', LIMITS.generate))) {
       return Response.json(
         { error: 'Too many previews from your network today. Please try again tomorrow.' },
+        { status: 429 }
+      )
+    }
+
+    // Hard daily ceiling on FREE previews across everyone, so a distributed
+    // attack cannot run up the bill. Paying businesses are never blocked here.
+    if (
+      business.subscriptionStatus !== 'active' &&
+      !(await underGlobalCap('generate', GLOBAL_LIMITS.generate))
+    ) {
+      return Response.json(
+        { error: 'The free preview is at capacity for today. Please check back tomorrow.' },
         { status: 429 }
       )
     }

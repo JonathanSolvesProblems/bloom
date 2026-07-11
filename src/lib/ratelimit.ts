@@ -64,6 +64,28 @@ export async function allowRequest(request: NextRequest, bucket: string, perDayC
   }
 }
 
+/**
+ * A GLOBAL, per-day ceiling across all callers, so a distributed attack from many
+ * IPs (each under the per-IP cap) still cannot run up the Gemini bill. This is the
+ * absolute cap on free-preview spend for a day; paid generations do not use it.
+ * Fails open on a DB error (the Vertex quota and the cloud budget are the hard
+ * backstops); returns true while under the cap.
+ */
+export async function underGlobalCap(bucket: string, perDayCap: number): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10)
+  const key = `global:${bucket}:${day}`
+  try {
+    const rl = await db.rateLimit.upsert({
+      where: { key },
+      create: { key, count: 1 },
+      update: { count: { increment: 1 } },
+    })
+    return rl.count <= perDayCap
+  } catch {
+    return true
+  }
+}
+
 /** Delete rate-limit buckets older than two days so the table cannot grow forever. */
 export async function pruneRateLimits(): Promise<number> {
   try {
@@ -80,4 +102,12 @@ export async function pruneRateLimits(): Promise<number> {
 export const LIMITS = {
   generate: 25,
   business: 25,
+}
+
+// Absolute daily ceiling on FREE previews across everyone. At roughly $0.01 of
+// Gemini per preview, the default 500 caps free-preview spend near $5/day even
+// under a distributed attack. Lower it with FREE_PREVIEW_DAILY_CAP if you want a
+// tighter ceiling while testing.
+export const GLOBAL_LIMITS = {
+  generate: Number(process.env.FREE_PREVIEW_DAILY_CAP) || 500,
 }
