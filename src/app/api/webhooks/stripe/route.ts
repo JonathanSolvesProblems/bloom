@@ -62,6 +62,7 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   // cancellation transitions, so treating it as an activation would revive
   // non-paying accounts.
   let entitled = false
+  let cancelAtPeriodEnd = false
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
@@ -79,6 +80,9 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
     businessId = business?.id ?? null
     entitled = sub.status === 'active' || sub.status === 'trialing'
     plan = planOf(sub)
+    // A scheduled cancellation: still entitled until the period ends, but the
+    // dashboard should say so rather than showing a bare "active".
+    cancelAtPeriodEnd = sub.cancel_at_period_end === true
   }
 
   if (!businessId) return
@@ -90,6 +94,7 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
       subscriptionStatus: entitled ? 'active' : 'inactive',
       stripeSubscriptionId: subscriptionId,
       stripeCustomerId: customerId,
+      cancelAtPeriodEnd: entitled ? cancelAtPeriodEnd : false,
     },
   })
 
@@ -166,7 +171,7 @@ async function handleCancellation(event: Stripe.Event) {
 
   await db.business.update({
     where: { id: business.id },
-    data: { subscriptionStatus: 'inactive', tier: 'free' },
+    data: { subscriptionStatus: 'inactive', tier: 'free', cancelAtPeriodEnd: false },
   })
 
   await db.agentLog.create({

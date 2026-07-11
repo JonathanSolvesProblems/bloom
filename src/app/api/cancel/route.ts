@@ -30,23 +30,33 @@ export async function POST(request: NextRequest) {
     return Response.redirect(`${dashboard}&cancelled=1`, 303)
   }
 
+  // ?resume=1 undoes a scheduled cancellation, so a customer who cancelled by
+  // mistake can keep their plan without contacting anyone.
+  const resume = request.nextUrl.searchParams.get('resume') === '1'
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   try {
     await stripe.subscriptions.update(business.stripeSubscriptionId, {
-      cancel_at_period_end: true,
+      cancel_at_period_end: !resume,
     })
   } catch {
     return Response.redirect(`${dashboard}&cancel_error=1`, 303)
   }
 
+  // Reflect it in the dashboard right away instead of waiting for the webhook,
+  // so the click visibly does something.
+  await db.business.update({ where: { id: businessId }, data: { cancelAtPeriodEnd: !resume } })
+
   await db.agentLog.create({
     data: {
       businessId,
-      action: 'paused_delivery',
-      summary: 'Cancellation scheduled: service continues until the end of the paid period.',
-      details: JSON.stringify({ scheduled: true }),
+      action: resume ? 'subscription_activated' : 'paused_delivery',
+      summary: resume
+        ? 'Cancellation reversed: the subscription will keep renewing.'
+        : 'Cancellation scheduled: service continues until the end of the paid period.',
+      details: JSON.stringify({ scheduled: !resume }),
     },
   })
 
-  return Response.redirect(`${dashboard}&cancelled=1`, 303)
+  return Response.redirect(`${dashboard}&${resume ? 'resumed' : 'cancelled'}=1`, 303)
 }

@@ -32,6 +32,9 @@ model Business {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   subscriptionStatus   String          @default("inactive")
+  // True once the owner has cancelled but the paid period has not ended yet, so
+  // the dashboard can show "cancelling" instead of a bare "active".
+  cancelAtPeriodEnd    Boolean         @default(false)
   subscribers          Subscriber[]
   weeklyContent        WeeklyContent[]
   agentLogs            AgentLog[]

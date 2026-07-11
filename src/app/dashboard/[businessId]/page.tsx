@@ -348,6 +348,7 @@ export default async function DashboardPage({
           token={t}
           mailingAddress={business.mailingAddress ?? ''}
           isActive={isActive}
+          cancelling={isActive && business.cancelAtPeriodEnd}
           planLabel={isPro ? 'Pro' : isActive ? 'Starter' : 'Free'}
         />
       </div>
@@ -360,12 +361,14 @@ function SettingsCard({
   token,
   mailingAddress,
   isActive,
+  cancelling,
   planLabel,
 }: {
   businessId: string
   token: string
   mailingAddress: string
   isActive: boolean
+  cancelling: boolean
   planLabel: string
 }) {
   return (
@@ -394,11 +397,21 @@ function SettingsCard({
       <div className="border-t border-border mt-5 pt-5 flex items-center justify-between gap-4">
         <div>
           <div className="text-sm font-medium text-foreground">Current plan: {planLabel}</div>
-          {isActive && (
+          {isActive && cancelling ? (
+            <div className="text-xs text-accent-coral-strong mt-0.5">
+              Set to cancel at the end of your billing period. You keep access until then.
+            </div>
+          ) : isActive ? (
             <div className="text-xs text-muted mt-0.5">Cancel anytime. Your content stays until the period ends.</div>
-          )}
+          ) : null}
         </div>
-        {isActive && (
+        {isActive && cancelling ? (
+          <form action={`/api/cancel?businessId=${businessId}&t=${encodeURIComponent(token)}&resume=1`} method="post">
+            <button type="submit" className="btn-primary text-sm py-2 px-4">
+              Keep my subscription
+            </button>
+          </form>
+        ) : isActive ? (
           <form action={`/api/cancel?businessId=${businessId}&t=${encodeURIComponent(token)}`} method="post">
             <button
               type="submit"
@@ -407,7 +420,7 @@ function SettingsCard({
               Cancel subscription
             </button>
           </form>
-        )}
+        ) : null}
       </div>
     </div>
   )
