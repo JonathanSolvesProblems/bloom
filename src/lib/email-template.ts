@@ -52,10 +52,13 @@ export function brandEmail(bodyHtml: string, brand: Branding): string {
   const onColor = textOn(color)
   const name = esc(brand.name)
 
-  const header = `<tr><td style="background:${color};padding:24px;text-align:center">
-    ${logo ? `<img src="${esc(logo)}" alt="${name}" height="44" style="display:inline-block;max-height:44px;border:0;margin-bottom:8px" /><br />` : ''}
-    <span style="color:${onColor};font-size:20px;font-weight:700;font-family:Helvetica,Arial,sans-serif">${name}</span>
-  </td></tr>`
+  // Show the logo if there is one (it is the brand mark, and usually already
+  // contains the name); otherwise fall back to the business name as text. The
+  // logo keeps the name as alt text for when a client blocks remote images.
+  const brandMark = logo
+    ? `<img src="${esc(logo)}" alt="${name}" height="44" style="display:inline-block;max-height:44px;border:0" />`
+    : `<span style="color:${onColor};font-size:20px;font-weight:700;font-family:Helvetica,Arial,sans-serif">${name}</span>`
+  const header = `<tr><td style="background:${color};padding:24px;text-align:center">${brandMark}</td></tr>`
 
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-collapse:collapse">
   ${header}
