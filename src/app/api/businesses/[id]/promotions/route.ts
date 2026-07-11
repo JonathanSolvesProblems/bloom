@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { getMondayOf } from '@/lib/agent-run'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,12 +40,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (Object.keys(data).length > 0) {
     await db.business.update({ where: { id }, data })
 
-    // If the owner changed what to feature, drop this week's not-yet-sent draft
-    // so the next preview or run regenerates against the new promotions instead
-    // of returning the stale one. Never touch a newsletter already emailed.
+    // If the owner changed what to feature, drop every not-yet-sent draft so the
+    // next preview or run regenerates against the new promotions. All unsent (not
+    // just this week's) because an inactive business reuses its latest sample
+    // regardless of week, so a stale older draft would otherwise still be served.
+    // A newsletter already emailed is never touched.
     if ('promotions' in data) {
-      const weekOf = getMondayOf(new Date())
-      await db.weeklyContent.deleteMany({ where: { businessId: id, weekOf, newsletterSent: false } })
+      await db.weeklyContent.deleteMany({ where: { businessId: id, newsletterSent: false } })
     }
   }
 

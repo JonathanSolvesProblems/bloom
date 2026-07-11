@@ -26,9 +26,14 @@ export async function GET(request: NextRequest) {
   const weekOf = getMondayOf(new Date())
 
   // Oldest first, deterministically. An unordered findMany would silently
-  // starve the same later signups every single week.
+  // starve the same later signups every single week. The comped demo business is
+  // excluded so it never spends Gemini tokens or sends on the owner's dime.
+  const demoId = process.env.DEMO_BUSINESS_ID
   const active = await db.business.findMany({
-    where: { subscriptionStatus: 'active' },
+    where: {
+      subscriptionStatus: 'active',
+      ...(demoId ? { id: { not: demoId } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     select: { id: true, tier: true },
   })

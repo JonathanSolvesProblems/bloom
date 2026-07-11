@@ -38,10 +38,13 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle dark mode"
-      suppressHydrationWarning
       className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-muted hover:text-foreground hover:border-brand-teal/50 transition-colors"
     >
-      {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      {/* Render both; CSS keyed on the server-set html[data-theme] shows the right
+          one on first paint, so a returning dark-mode user never sees the wrong
+          icon flash before hydration. */}
+      <Sun className="w-4 h-4 theme-icon-dark" />
+      <Moon className="w-4 h-4 theme-icon-light" />
     </button>
   )
 }

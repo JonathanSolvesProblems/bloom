@@ -36,19 +36,28 @@ export async function GET(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   const origin = publicBaseUrl(request)
 
-  // A subscriber who lands here again would otherwise buy a second subscription
-  // and be charged twice. Send them back to the dashboard, where changing plan
-  // goes through /api/upgrade and modifies the one they already have.
-  if (business.subscriptionStatus === 'active' && business.stripeSubscriptionId) {
-    return Response.redirect(
-      `${origin}/dashboard/${businessId}?t=${encodeURIComponent(business.dashboardToken)}`,
-      303
-    )
+  // Reuse a single Stripe customer per business. This route is UNAUTHENTICATED
+  // (businessId is public), so it must never echo the owner-only dashboard
+  // token, and reusing one customer lets its existing subscriptions be checked
+  // so a repeat checkout cannot open a second parallel subscription.
+  let customerId = business.stripeCustomerId
+  if (!customerId) {
+    const customer = await stripe.customers.create({ email: business.ownerEmail, metadata: { businessId } })
+    customerId = customer.id
+    await db.business.update({ where: { id: businessId }, data: { stripeCustomerId: customerId } })
+  }
+
+  // Already paying? Do not sell a second subscription, and do not leak the token
+  // to whoever holds the public businessId. Send them to the neutral recovery
+  // page, which emails their dashboard link to the address on file.
+  const existing = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 10 })
+  if (existing.data.some((s) => s.status === 'active' || s.status === 'trialing')) {
+    return Response.redirect(`${origin}/recover`, 303)
   }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    customer_email: business.ownerEmail,
+    customer: customerId,
     line_items: [
       {
         price_data: {

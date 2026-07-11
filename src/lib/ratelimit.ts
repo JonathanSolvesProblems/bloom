@@ -22,13 +22,20 @@ function clientIp(request: NextRequest): string {
     if (vercelIp) return vercelIp.split(',')[0].trim()
   }
 
-  const realIp = request.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-
+  // Off Vercel (behind Traefik), `x-real-ip` is client-suppliable: Traefik does
+  // not overwrite it by default, so a caller could rotate it per request and mint
+  // a fresh rate-limit bucket each time. Only the RIGHTMOST X-Forwarded-For hop is
+  // trustworthy, since Traefik appends the real peer address last.
   const xff = request.headers.get('x-forwarded-for')
   if (xff) {
-    const hops = xff.split(',')
-    return hops[hops.length - 1].trim()
+    const hops = xff.split(',').map((h) => h.trim()).filter(Boolean)
+    if (hops.length) return hops[hops.length - 1]
+  }
+
+  // Only trust x-real-ip on Vercel, which sets it itself.
+  if (ON_VERCEL) {
+    const realIp = request.headers.get('x-real-ip')
+    if (realIp) return realIp.trim()
   }
   return 'unknown'
 }

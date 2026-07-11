@@ -10,7 +10,7 @@ type LogRow = {
   action: string
   summary: string
   details: string | null
-  business: { name: string } | null
+  business: { type: string; city: string } | null
 }
 
 const ACTION_STYLES: Record<string, { label: string; cls: string }> = {
@@ -45,7 +45,9 @@ export default async function AgentPage() {
     db.agentLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
-      include: { business: { select: { name: true } } },
+      // Do NOT expose customer business names on this public page. Show only the
+      // type and city so the feed stays concrete without identifying a customer.
+      include: { business: { select: { type: true, city: true } } },
     }) as Promise<LogRow[]>,
     db.agentLog.count(),
     db.agentLog.count({ where: { action: 'generated_content' } }),
@@ -129,7 +131,11 @@ export default async function AgentPage() {
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="text-white/40 shrink-0">{fmt(log.createdAt)}</span>
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${style.cls}`}>{style.label}</span>
-                  {log.business?.name && <span className="text-brand-cyan shrink-0">{log.business.name}</span>}
+                  {log.business && (
+                    <span className="text-brand-cyan shrink-0">
+                      a {log.business.type} in {log.business.city}
+                    </span>
+                  )}
                   <span className="text-white/85 flex-1 min-w-[12rem]">{log.summary}</span>
                 </div>
                 {(reasoning || meta.length > 0) && (

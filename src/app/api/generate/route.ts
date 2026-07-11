@@ -43,7 +43,13 @@ export async function POST(request: NextRequest) {
     // edit instead of silently returning last time's stale sample.
     const brand: Brand = { name: business.name, brandColor: business.brandColor, logoUrl: business.logoUrl }
 
-    const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
+    // Cost control: a free/inactive business gets ONE sample, reused forever
+    // (editing promotions clears it so a re-preview regenerates, see the
+    // promotions route). Only paying businesses regenerate fresh each week.
+    const existing =
+      business.subscriptionStatus === 'active'
+        ? await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
+        : await db.weeklyContent.findFirst({ where: { businessId }, orderBy: { createdAt: 'desc' } })
     if (existing) {
       return Response.json({ content: branded(existing, brand) })
     }
@@ -100,7 +106,7 @@ export async function POST(request: NextRequest) {
       // top of the funnel.
       if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'P2002') {
         const now = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
-        if (now) return Response.json({ content: now })
+        if (now) return Response.json({ content: branded(now, brand) })
       }
       throw e
     }

@@ -19,6 +19,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { businessId, email } = schema.parse(body)
 
+    // Never attach subscribers to the comped demo business. Its whole safety
+    // rests on staying at zero subscribers so it can never email on the owner's
+    // Resend quota. Report success so the endpoint is not a probe.
+    if (businessId === process.env.DEMO_BUSINESS_ID) {
+      return Response.json({ ok: true })
+    }
+
     if (!(await allowRequest(request, 'subscribe', SUBSCRIBE_PER_DAY))) {
       return Response.json({ error: 'Too many sign-ups from your network today. Please try again tomorrow.' }, { status: 429 })
     }

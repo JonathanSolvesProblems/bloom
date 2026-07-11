@@ -37,9 +37,11 @@ export async function POST(request: NextRequest) {
 
     const existing = await db.business.findUnique({ where: { ownerEmail: data.ownerEmail } })
     if (existing) {
-      // Return the public id only. The dashboardToken is never re-issued here,
-      // so knowing an owner's email can never grant dashboard access.
-      return Response.json({ businessId: existing.id })
+      // This email already has an account. Never re-issue the dashboardToken here
+      // (knowing an email must not grant access). Signal `existing` so the setup
+      // flow can send the returning owner to recover their dashboard link instead
+      // of silently discarding their new input and showing a stale preview.
+      return Response.json({ existing: true })
     }
 
     const business = await db.business.create({ data })

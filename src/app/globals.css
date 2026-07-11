@@ -38,6 +38,18 @@
     radial-gradient(50% 60% at 60% 90%, color-mix(in oklab, #fdba8c 30%, transparent), transparent 60%);
 }
 
+/* Theme-toggle icons: the correct one is shown by the server-set data-theme,
+   with no client JS, so a returning dark-mode user sees no wrong-icon flash. */
+.theme-icon-dark {
+  display: none;
+}
+[data-theme='dark'] .theme-icon-dark {
+  display: inline-block;
+}
+[data-theme='dark'] .theme-icon-light {
+  display: none;
+}
+
 [data-theme="dark"] {
   --background: #071410;
   --foreground: #e9f2ec;

@@ -40,9 +40,13 @@ services:
   # app as `bloom`, the container name, because `web` is shared with every other
   # stack on this box and the alias `app` is not unique there.
   #
-  # Monday 13:00 UTC, matching vercel.json so the schedule does not change with
-  # the host. Weekly content is keyed @@unique([businessId, weekOf]), so a double
-  # fire is a no-op rather than a double send.
+  # Ticks DAILY at 13:00 UTC, not just Monday. The run is idempotent (content is
+  # keyed @@unique([businessId, weekOf]) and the send is claimed atomically), and
+  # the dispatcher skips any business already done for the week, so a daily tick
+  # is a no-op for finished businesses but lets a business that missed its Monday
+  # run (a deploy or crash during the tick) self-heal the same week instead of
+  # silently losing it. It also means a business that signs up mid-week gets its
+  # first content that day rather than waiting for the next Monday.
   cron:
     image: alpine:3.20
     container_name: bloom-cron
@@ -57,7 +61,7 @@ services:
     command: >
       sh -c "apk add --no-cache curl >/dev/null &&
              printenv CRON_SECRET > /run/cron-secret && chmod 600 /run/cron-secret &&
-             echo '0 13 * * 1 sh /weekly-tick.sh >> /var/log/bloom-cron.log 2>&1' > /etc/crontabs/root &&
+             echo '0 13 * * * sh /weekly-tick.sh >> /var/log/bloom-cron.log 2>&1' > /etc/crontabs/root &&
              touch /var/log/bloom-cron.log &&
              crond -f -l 8"
     logging:

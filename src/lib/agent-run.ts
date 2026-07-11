@@ -218,6 +218,10 @@ function withUnsubscribe(
  * to call twice for the same week.
  */
 export async function runWeeklyForBusiness(businessId: string): Promise<{ generated: boolean; sent: number }> {
+  // The comped demo account must never do paid weekly work, no matter how it is
+  // triggered. It stays a static showcase.
+  if (businessId === process.env.DEMO_BUSINESS_ID) return { generated: false, sent: 0 }
+
   const weekOf = getMondayOf(new Date())
 
   const business = await db.business.findUnique({

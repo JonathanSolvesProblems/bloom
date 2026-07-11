@@ -87,6 +87,24 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
 
   if (!businessId) return
 
+  // Guard against a double-checkout race: if two sessions completed for the same
+  // customer, keep the oldest subscription and cancel the rest so the card is not
+  // billed twice with an orphaned subscription no in-app control can reach.
+  if (event.type === 'checkout.session.completed' && entitled && customerId) {
+    try {
+      const active = await getStripe().subscriptions.list({ customer: customerId, status: 'active', limit: 10 })
+      if (active.data.length > 1) {
+        const keep = [...active.data].sort((a, b) => a.created - b.created)[0]
+        subscriptionId = keep.id
+        for (const s of active.data) {
+          if (s.id !== keep.id) await getStripe().subscriptions.cancel(s.id)
+        }
+      }
+    } catch (err) {
+      console.error('Duplicate-subscription cleanup failed:', err)
+    }
+  }
+
   await db.business.update({
     where: { id: businessId },
     data: {

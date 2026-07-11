@@ -6,16 +6,16 @@ I built Bloom because most local businesses (salons, cafes, gyms, clinics) know 
 
 ## Demo
 
-Live app: **https://bloom-six-theta.vercel.app**. Enter a business in three steps and Bloom generates a real content preview on the spot, no signup or credit card required.
+Live app: **https://bloom.jonathanandrei.com**. Enter a business in three steps and Bloom generates a real content preview on the spot, no signup or credit card required.
 
 ## How it works
 
 1. **Set up once.** The owner enters their business details, picks a brand voice, and adds their contact info. Three short steps, no credit card.
 2. **See a free preview.** Bloom generates three real social posts and a newsletter draft on the spot, so the owner sees the quality before paying anything.
-3. **The agent takes over.** A scheduled job runs every Monday at 13:00 UTC. It generates that week's content with Gemini, saves it, and logs every action to an activity log. On Starter ($49/month) the owner publishes it themselves. On Pro ($99/month) the agent also emails the newsletter to the business's subscriber list through Resend.
+3. **The agent takes over.** A scheduled job runs at 13:00 UTC. It generates that week's content with Gemini, saves it, and logs every action to an activity log. On Starter ($49/month) the owner publishes it themselves. On Pro ($99/month) the agent also emails the newsletter to the business's subscriber list through Resend.
 4. **Grow the list.** Each business gets a public subscribe page to share with customers so their audience keeps growing.
 
-The weekly run is fully autonomous. No person triggers it: the Vercel Cron defined in [vercel.json](vercel.json) calls `/api/cron/weekly`, which is the agent's entry point.
+The weekly run is fully autonomous. No person triggers it: on the primary self-hosted deployment a cron sidecar (see [docker-compose.yml](docker-compose.yml)) calls `/api/cron/weekly` daily, which is the agent's entry point. It ticks daily so a missed run self-heals, but the content is keyed per week, so each business gets one week of content per week. On a Vercel-only deployment you would add a Vercel Cron back to `vercel.json` instead.
 
 ## Stack
 

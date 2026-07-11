@@ -110,7 +110,13 @@ export default function SetupPage() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error('Failed to create business')
-      const { businessId, dashboardToken } = await res.json()
+      const { businessId, dashboardToken, existing } = await res.json()
+      // This email already has an account. Send them to recover their dashboard
+      // link rather than showing a stale preview that ignores what they just typed.
+      if (existing) {
+        router.push('/recover?exists=1')
+        return
+      }
       // Keep the owner-only token in this browser. It must never ride along in
       // the preview URL, because that link gets shared with prospects.
       if (dashboardToken) {
