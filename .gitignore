@@ -45,3 +45,11 @@ next-env.d.ts
 
 # personal working notes, not part of the project
 demoscript.md
+
+# demo video working files (large media, or contain a dashboard token)
+*.mp4
+*.mp3
+*.wav
+shot-list.json
+*.edit-plan.json
+/broll/
