@@ -4,6 +4,7 @@ import { after } from '@/lib/after'
 import { db } from '@/lib/db'
 import { generateWeeklyContent, QA_THRESHOLD } from '@/lib/gemini'
 import { rewriteInBackground } from '@/lib/agent-run'
+import { brandEmail } from '@/lib/email-template'
 import { allowRequest, LIMITS } from '@/lib/ratelimit'
 
 // The response lands in ~25s, but the background rewrite runs inside this same
@@ -11,6 +12,13 @@ import { allowRequest, LIMITS } from '@/lib/ratelimit'
 export const maxDuration = 120
 
 const schema = z.object({ businessId: z.string().cuid() })
+
+type Brand = { name: string; brandColor: string; logoUrl: string }
+
+/** Render the stored newsletter body in the business's branding for display. */
+function branded<T extends { newsletterHtml: string }>(content: T, b: Brand): T {
+  return { ...content, newsletterHtml: brandEmail(content.newsletterHtml, b) }
+}
 
 function getMondayOf(date: Date): string {
   const d = new Date(date)
@@ -33,9 +41,11 @@ export async function POST(request: NextRequest) {
     // Keying on weekOf (not just businessId) means editing promotions clears the
     // current-week row (see the promotions route), so a re-preview reflects the
     // edit instead of silently returning last time's stale sample.
+    const brand: Brand = { name: business.name, brandColor: business.brandColor, logoUrl: business.logoUrl }
+
     const existing = await db.weeklyContent.findFirst({ where: { businessId, weekOf } })
     if (existing) {
-      return Response.json({ content: existing })
+      return Response.json({ content: branded(existing, brand) })
     }
 
     // Only real (paid) generations past this point are rate limited.
@@ -171,7 +181,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return Response.json({ content: saved })
+    return Response.json({ content: branded(saved, brand) })
   } catch (err) {
     if (err instanceof z.ZodError) return Response.json({ error: err.issues }, { status: 400 })
     console.error(err)

@@ -1,5 +1,6 @@
 import { db } from './db'
 import { generateWeeklyContent, QA_THRESHOLD, type PriorWeek } from './gemini'
+import { brandEmail } from './email-template'
 import { Resend } from 'resend'
 
 type BusinessProfile = {
@@ -408,6 +409,14 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
     const resend = new Resend(apiKey)
     const from = `${sanitizeSenderName(business.name)} <newsletter@${fromDomain}>`
 
+    // Wrap the stored body in the business's branding once, at send time, so a
+    // brand change takes effect without regenerating content.
+    const brandedBody = brandEmail(content.newsletterHtml, {
+      name: business.name,
+      brandColor: business.brandColor,
+      logoUrl: business.logoUrl,
+    })
+
     const messageIds: string[] = []
 
     try {
@@ -420,7 +429,7 @@ export async function runWeeklyForBusiness(businessId: string): Promise<{ genera
             to: s.email,
             subject: content!.newsletterSubject,
             html: withUnsubscribe(
-              content!.newsletterHtml,
+              brandedBody,
               unsubUrl,
               business.name,
               business.mailingAddress,

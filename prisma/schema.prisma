@@ -23,6 +23,10 @@ model Business {
   brandVoice           String          @default("friendly")
   // Language the agent writes the customer-facing content in (ISO 639-1).
   contentLanguage      String          @default("en")
+  // Paid branding: a hex color and a hosted logo URL rendered into the
+  // newsletter header. Empty means Bloom's default green with no logo.
+  brandColor           String          @default("")
+  logoUrl              String          @default("")
   promotions           String?
   ownerEmail           String          @unique
   ownerName            String

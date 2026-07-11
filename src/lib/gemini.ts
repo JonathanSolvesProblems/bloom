@@ -233,7 +233,7 @@ DECIDE AND CREATE this week's marketing. Return a JSON object with exactly these
   "post2": "Second social post. 50-80 words. Feature the promotion, end with a clear call to action.",
   "post3": "Third social post. 40-70 words. Community-focused or behind-the-scenes. Builds trust and personality.",
   "newsletterSubject": "Use exactly the same value as chosenSubject.",
-  "newsletterHtml": "Full HTML email body (150-200 words). Simple inline-styled HTML: a header with the business name, a short paragraph of news/promotions tied to the weekly theme, and a highlight section (light background div). End with a clear call to action written as TEXT (for example inviting the reader to reply, call, or visit this week). Do NOT include placeholder links or buttons with href='#' or empty hrefs; only link to a real URL if the owner provided one, otherwise keep the call to action as text. Mobile-friendly and readable."
+  "newsletterHtml": "The newsletter BODY only, as simple inline-styled HTML (150-200 words). Do NOT include the business name as a heading, a logo, or any header block: those are added automatically around your body. Start directly with a short greeting paragraph of news/promotions tied to the weekly theme, then a highlight section (a light background div with its own small heading), then end with a clear call to action written as TEXT (for example inviting the reader to reply, call, or visit this week). Do NOT include placeholder links or buttons with href='#' or empty hrefs; only link to a real URL if the owner provided one, otherwise keep the call to action as text. Mobile-friendly and readable."
 }
 
 STYLE RULES (these decide whether the content is usable):

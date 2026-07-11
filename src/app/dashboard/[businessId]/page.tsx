@@ -342,6 +342,15 @@ export default async function DashboardPage({
         {/* Promotions editor */}
         <PromotionsEditor businessId={businessId} currentPromotions={business.promotions ?? ''} token={t} />
 
+        {/* Newsletter branding (paid) */}
+        <BrandingCard
+          businessId={businessId}
+          token={t}
+          isActive={isActive}
+          brandColor={business.brandColor || ''}
+          logoUrl={business.logoUrl || ''}
+        />
+
         {/* Business details + subscription */}
         <SettingsCard
           businessId={businessId}
@@ -352,6 +361,73 @@ export default async function DashboardPage({
           planLabel={isPro ? 'Pro' : isActive ? 'Starter' : 'Free'}
         />
       </div>
+    </div>
+  )
+}
+
+function BrandingCard({
+  businessId,
+  token,
+  isActive,
+  brandColor,
+  logoUrl,
+}: {
+  businessId: string
+  token: string
+  isActive: boolean
+  brandColor: string
+  logoUrl: string
+}) {
+  const color = /^#[0-9a-fA-F]{6}$/.test(brandColor) ? brandColor : '#047857'
+
+  return (
+    <div className="card bg-card">
+      <h2 className="font-semibold text-foreground mb-2">Newsletter branding</h2>
+      <p className="text-sm text-muted mb-4">
+        Put your logo and color in the header of every newsletter, so it looks like yours, not ours. This applies to
+        your emailed newsletter and the preview.
+      </p>
+
+      {isActive ? (
+        <form action={`/api/businesses/${businessId}/promotions`} method="POST" className="space-y-4">
+          <input type="hidden" name="t" value={token} />
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              name="brandColor"
+              defaultValue={color}
+              aria-label="Brand color"
+              className="h-10 w-14 rounded-lg border border-border bg-transparent cursor-pointer p-1"
+            />
+            <div className="text-sm text-muted">
+              Brand color for the newsletter header. Leave the default green if you like it.
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted">Logo URL</label>
+            <input
+              name="logoUrl"
+              className="input mt-1"
+              defaultValue={logoUrl}
+              placeholder="https://yoursite.com/logo.png"
+              maxLength={500}
+            />
+            <p className="text-xs text-muted mt-1">
+              A direct link to a hosted image (PNG or JPG). It shows at the top of your newsletter. Leave blank for no
+              logo.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <button type="submit" className="btn-primary text-sm py-2 px-4">
+              Save branding
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="text-sm text-muted">
+          Branding is a paid feature. Activate a plan to add your logo and color to your newsletter.
+        </p>
+      )}
     </div>
   )
 }
