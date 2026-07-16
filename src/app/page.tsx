@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import SiteNav from '@/components/SiteNav'
 import AgentHeroCard from '@/components/AgentHeroCard'
+import RhythmWall from '@/components/RhythmWall'
 import CountUp from '@/components/CountUp'
 import Reveal from '@/components/Reveal'
 import { SUPPORT_EMAIL } from '@/lib/config'
@@ -124,41 +125,73 @@ export default function HomePage() {
       <SiteNav />
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="relative overflow-hidden">
+        {/* Hero. Deliberately asymmetric and left-hung: a centered stack under a
+            gradient is the shape every generated page has, and this one is a page
+            of a book, not a landing section. */}
+        <section className="paper-grain relative overflow-hidden border-b border-ink">
           <div className="aurora" />
-          <div className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="glass inline-flex items-center gap-2 text-foreground text-sm font-medium px-3.5 py-1.5 rounded-full mb-6">
-                <Sparkles className="w-4 h-4 text-brand-teal" />
-                AI retention agent for local businesses
+          <div className="relative z-10 max-w-6xl mx-auto px-6 pt-14 pb-16 lg:pt-20 lg:pb-20 grid lg:grid-cols-12 gap-x-10 gap-y-12 items-start">
+            <div className="lg:col-span-5">
+              <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft border border-rule px-2.5 py-1 mb-7">
+                <span className="w-1 h-1 rounded-full bg-pencil" />
+                Retention agent · salons and barbershops
               </div>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-foreground">
-                The clients you are about to{' '}
-                <span className="font-serif italic font-normal text-brand-teal-text">lose</span>, before you lose them.
+
+              <h1 className="font-display text-[2.6rem] sm:text-6xl lg:text-[4.1rem] leading-[0.94] text-ink">
+                Nobody
+                <br />
+                cancels.
+                <br />
+                <span className="text-ink-soft">They just stop</span>
+                <br />
+                <span className="relative inline-block">
+                  coming.
+                  {/* Struck through by hand: the word is the thing that quietly
+                      stops, so the line stops with it. */}
+                  <svg
+                    className="absolute left-0 -bottom-1 w-full h-3 overflow-visible"
+                    viewBox="0 0 100 12"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M1 8 C 22 3, 48 11, 74 5 C 84 2.6, 92 6, 99 4"
+                      fill="none"
+                      stroke="var(--pencil)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                </span>
               </h1>
-              <p className="text-lg text-muted max-w-xl mt-6 leading-relaxed">
-                Nobody cancels. They just quietly stop coming, and you find out months later. Bloom reads your booking
-                history, works out who is slipping against their own rhythm, and writes each one a personal note in your
-                voice. Upload a CSV from whatever you already use. Nothing to migrate.
+
+              <p className="text-[1.05rem] text-ink-soft max-w-md mt-8 leading-relaxed">
+                And you find out months later, from a gap in the book. Bloom reads your booking history, works out who
+                is drifting from{' '}
+                <span className="text-ink font-medium">their own rhythm</span>, and writes each one a note in your
+                voice. Export a CSV from whatever you already use. Nothing to migrate.
               </p>
+
               <div className="flex flex-col sm:flex-row gap-3 mt-8">
-                <Link href="/setup" className="btn-primary text-base py-3 px-7">
+                <Link href="/setup" className="btn-primary text-base py-3 px-7 whitespace-nowrap">
                   Show me who is slipping
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </Link>
-                <a href="#how-it-works" className="btn-outline text-base py-3 px-7">
+                <a href="#how-it-works" className="btn-outline text-base py-3 px-7 whitespace-nowrap">
                   See how it works
                 </a>
               </div>
-              <p className="text-sm text-muted mt-4">
-                Free to look. No card, and no booking export needed to try it.
+              <p className="font-mono text-[11px] text-ink-soft mt-5">
+                Free to look. No card, no export needed to try it.
               </p>
             </div>
 
-            <Reveal delay={80}>
-              <AgentHeroCard />
-            </Reveal>
+            {/* The argument, drawn. This is the first thing worth looking at, so
+                it gets the width and sits high on the page. */}
+            <div className="lg:col-span-7 lg:pt-6">
+              <RhythmWall />
+            </div>
           </div>
         </section>
 
@@ -558,16 +591,21 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border pt-6 text-xs">
-            <a
-              href="https://jonathanandrei.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              Built by Jonathan Andrei
-            </a>
-            <span className="text-muted">Runs on Gemini via Vertex AI</span>
+          {/* A colophon, which is what the back of a book has: who set it, in what,
+              and on what. It is the honest place for a byline. */}
+          <div className="flex flex-col sm:flex-row items-baseline justify-between gap-3 border-t border-ink pt-6 font-mono text-[11px] text-ink-soft">
+            <p>
+              Built by{' '}
+              <a
+                href="https://jonathanandrei.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink underline decoration-pencil decoration-2 underline-offset-4 hover:decoration-ink"
+              >
+                JonathanSolvesProblems
+              </a>
+            </p>
+            <p className="text-ink-soft">Set in Fraunces. Reasoning by Gemini, on Vertex AI.</p>
           </div>
         </div>
       </footer>

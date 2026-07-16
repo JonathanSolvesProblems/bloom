@@ -1,41 +1,69 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   The appointment book.
+
+   Before Bloom, this job was done in a paper book: ruled lines, names in pencil,
+   and an owner who circled someone they had not seen in a while. That book is
+   where the whole product comes from, so it is where the design comes from too.
+
+   Everything here is a material decision, not a decorative one:
+   - Paper and ink, not a gradient. Warm stock, near-black with a brown cast,
+     because true #000 on #fff is a screen colour and this is meant to be a page.
+   - 1px rules and hard edges, never a blurred shadow or a frosted panel. A rule
+     is what a printed book uses to separate things.
+   - Red grease pencil is the ALARM colour and is used for nothing else, because
+     in a real book the only red marks are the ones the owner made on purpose.
+   - Stamp green means one thing: they came back. It is the rubber stamp.
+
+   The palette is themed here rather than in the components, so every screen
+   (radar, dashboard, emails) inherits the book without touching them.
+   ========================================================================= */
 :root {
-  --background: #ffffff;
-  --foreground: #0b1b14;
-  --surface: #fbfaf7;
-  --card: #ffffff;
-  --muted: #5b6b62;
-  --border: #ece9e4;
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-border: #ece9e4;
+  --paper: #f2eee4;
+  --paper-2: #eae4d6;
+  --paper-raised: #fbf8f1;
+  --ink: #1a1714;
+  --ink-soft: #5f574b;
+  --rule: #d8d0bd;
 
-  /* White text on --primary must clear WCAG AA (4.5:1). #059669 was 3.77:1. */
-  --primary: #047857;
-  --primary-dark: #065f46;
-  --primary-light: #d1fae5;
+  /* The only three marks anyone ever made in the book. */
+  --pencil: #b23a2e;
+  --pencil-strong: #8f2b21;
+  --stamp: #2e6b4e;
+  --ballpoint: #2f4a7a;
 
-  --brand-emerald: #10b981;
-  /* Emerald used as TEXT on tinted/translucent grounds. #10b981 is too light to
-     read on white; this darkens for light mode and lightens again on dark. */
-  --brand-emerald-text: #047857;
-  --brand-teal: #14b8a6;
-  /* Teal used as TEXT on light grounds; #14b8a6 was 2.49:1. */
-  --brand-teal-text: #0f766e;
-  --brand-cyan: #22d3ee;
-  --brand-violet: #a78bfa;
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --surface: var(--paper-2);
+  --card: var(--paper-raised);
+  --muted: var(--ink-soft);
+  --border: var(--rule);
+  /* Kept so existing markup does not break, but it is now paper, not frost. */
+  --glass: rgba(251, 248, 241, 0.86);
+  --glass-border: var(--rule);
 
-  --accent-coral: #fb7a50;
-  /* Coral behind white button text; #fb7a50 was 2.63:1. */
-  --accent-coral-strong: #c2410c;
-  --accent-peach: #fdba8c;
+  /* Buttons are stamped in ink, not brand green. This one change does more to
+     kill the generic-SaaS read than any other in the file. */
+  --primary: #1a1714;
+  --primary-dark: #000000;
+  --primary-light: #e5dcc6;
+  /* What sits ON primary. It cannot be hardcoded white: dark mode stamps in
+     paper on a dark page, and white text would vanish. */
+  --primary-fg: #fbf8f1;
 
-  --ink-dark: #06120d;
+  --brand-emerald: var(--stamp);
+  --brand-emerald-text: var(--stamp);
+  --brand-teal: var(--ballpoint);
+  --brand-teal-text: var(--ballpoint);
+  --brand-cyan: #3d6ea8;
+  --brand-violet: #6b4f7a;
 
-  --aurora:
-    radial-gradient(60% 80% at 20% 20%, color-mix(in oklab, #10b981 40%, transparent), transparent 60%),
-    radial-gradient(50% 70% at 80% 30%, color-mix(in oklab, #22d3ee 35%, transparent), transparent 60%),
-    radial-gradient(50% 60% at 60% 90%, color-mix(in oklab, #fdba8c 30%, transparent), transparent 60%);
+  --accent-coral: var(--pencil);
+  --accent-coral-strong: var(--pencil-strong);
+  --accent-peach: #cbb894;
+
+  --ink-dark: #14120f;
 }
 
 /* Theme-toggle icons: the correct one is shown by the server-set data-theme,
@@ -50,19 +78,34 @@
   display: none;
 }
 
+/* Dark is not an inverted UI, it is the same book after hours: the page goes to
+   board, the ink goes to chalk, and the pencil stays the only warm thing on it. */
 [data-theme="dark"] {
-  --background: #071410;
-  --foreground: #e9f2ec;
-  --surface: #0c1c16;
-  --card: #0f2019;
-  --muted: #8fa69b;
-  --border: #1e352c;
-  --glass: rgba(15, 32, 25, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --ink-dark: #0e211a;
-  /* On dark grounds these text colors must lighten, not darken. */
-  --brand-teal-text: #5eead4;
-  --brand-emerald-text: #6ee7b7;
+  --paper: #14120f;
+  --paper-2: #1b1815;
+  --paper-raised: #1f1c18;
+  --ink: #ece5d7;
+  --ink-soft: #9a9081;
+  --rule: #322d26;
+
+  --pencil: #e0654f;
+  --pencil-strong: #f08066;
+  --stamp: #6fbf95;
+  --ballpoint: #7fa3d8;
+
+  --glass: rgba(31, 28, 24, 0.86);
+  --glass-border: var(--rule);
+
+  /* Ink buttons cannot be ink on a dark page: invert to paper with dark text. */
+  --primary: #ece5d7;
+  --primary-dark: #ffffff;
+  --primary-light: #2a251e;
+  --primary-fg: #14120f;
+
+  --brand-cyan: #7fa3d8;
+  --brand-violet: #b192c4;
+  --accent-peach: #6b5f47;
+  --ink-dark: #0f0d0b;
 }
 
 @theme inline {
@@ -90,8 +133,19 @@
 
   --color-ink-dark: var(--ink-dark);
 
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rule: var(--rule);
+  --color-pencil: var(--pencil);
+  --color-pencil-strong: var(--pencil-strong);
+  --color-stamp: var(--stamp);
+  --color-ballpoint: var(--ballpoint);
+  --color-primary-fg: var(--primary-fg);
+
   --font-sans: var(--font-inter);
-  --font-display: var(--font-bricolage);
+  --font-display: var(--font-fraunces);
   --font-serif: var(--font-instrument);
   --font-mono: var(--font-geist);
 }
@@ -111,38 +165,89 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+/* Fraunces, set the way a headline gets set on a page rather than scaled up from
+   body copy: optical size cranked so the cut opens out, SOFT to take the
+   engineering off the terminals, and WONK on so the g and the italics go
+   slightly off-square. That last axis is the one doing the real work: perfect
+   evenness is what makes a page read as machine-set. */
 h1, h2, h3 {
-  font-family: var(--font-display), var(--font-sans), sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 108;
+  letter-spacing: -0.021em;
+  font-weight: 600;
 }
 
-/* ---------- Glass ---------- */
+/* ---------- Paper ----------
+   Real grain, generated in the page rather than shipped as an image: a fractal
+   turbulence tile at low opacity. Without it the flats read as plastic. */
+.paper-grain {
+  position: relative;
+}
+.paper-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.34'/%3E%3C/svg%3E");
+}
+[data-theme='dark'] .paper-grain::after {
+  mix-blend-mode: screen;
+  opacity: 0.28;
+}
+
+/* The ruled book. 32px feed, matching the leading of the rows drawn on it. */
+.ruled {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--rule) 31px,
+    var(--rule) 32px
+  );
+}
+
+/* ---------- Glass ----------
+   Kept only so older markup keeps working. It is paper now: opaque stock and a
+   hard rule. Nothing in this design is frosted. */
 .glass {
   background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
 }
 
 /* ---------- Buttons ---------- */
 .btn-primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-fg);
   padding: 0.75rem 1.5rem;
-  border-radius: 0.625rem;
+  /* 2px, not a pill. A stamped block, not a bubble. */
+  border-radius: 2px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 1px 2px rgba(11, 27, 20, 0.08), 0 6px 20px rgba(5, 150, 105, 0.18);
+  /* A hard offset block instead of a soft glow: the button sits ON the page and
+     casts an edge, the way a physical stamp would. No blur anywhere. */
+  box-shadow: 3px 3px 0 var(--ink);
 }
+[data-theme='dark'] .btn-primary {
+  box-shadow: 3px 3px 0 var(--rule);
+}
+/* Presses INTO the page rather than lifting off it. */
 .btn-primary:hover {
-  background: var(--accent-coral-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(11, 27, 20, 0.1), 0 10px 28px rgba(194, 65, 12, 0.28);
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.btn-primary:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+[data-theme='dark'] .btn-primary:hover {
+  box-shadow: 2px 2px 0 var(--rule);
 }
 
 /* Keyboard users need a visible focus target everywhere, not just a border tint. */
@@ -153,11 +258,11 @@ h1, h2, h3 {
 }
 
 .btn-outline {
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--ink);
   color: var(--foreground);
-  background: var(--glass);
+  background: transparent;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.625rem;
+  border-radius: 2px;
   font-weight: 500;
   font-size: 0.95rem;
   transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
@@ -167,25 +272,24 @@ h1, h2, h3 {
   gap: 0.5rem;
 }
 .btn-outline:hover {
-  border-color: var(--brand-teal);
-  transform: translateY(-1px);
+  background: var(--primary-light);
 }
 
-/* ---------- Cards ---------- */
+/* ---------- Cards ----------
+   Not floating panels. Cut paper: square-ish corners, one hard rule, no blur.
+   Depth comes from the rule and the stock colour, never from a shadow. */
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
   padding: 1.5rem;
-  box-shadow: 0 1px 2px rgba(11, 27, 20, 0.04), 0 4px 16px rgba(11, 27, 20, 0.05);
 }
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .card-hover:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(in oklab, var(--brand-teal) 40%, transparent);
-  box-shadow: 0 8px 32px rgba(11, 27, 20, 0.12);
+  border-color: var(--ink);
+  background: var(--paper-raised);
 }
 
 /* ---------- Form ---------- */
@@ -220,33 +324,72 @@ h1, h2, h3 {
   margin-top: 0.25rem;
 }
 
-/* ---------- Aurora ---------- */
+/* ---------- The page edge ----------
+   What replaced the drifting blurred gradient. A sheet of stock has an edge and
+   a shadow gutter where it meets the spine; that is the only "atmosphere" a book
+   has, and unlike an aurora it tells you what you are looking at. */
 .aurora {
   position: absolute;
-  inset: -20%;
-  background: var(--aurora);
-  filter: blur(60px);
-  opacity: 0.55;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
-  animation: auroraDrift 18s ease-in-out infinite;
-}
-@keyframes auroraDrift {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33% { transform: translate3d(3%, -2%, 0) scale(1.08); }
-  66% { transform: translate3d(-3%, 2%, 0) scale(1.04); }
+  background:
+    linear-gradient(to right, color-mix(in oklab, var(--ink) 7%, transparent), transparent 9%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      color-mix(in oklab, var(--rule) 55%, transparent) 31px,
+      color-mix(in oklab, var(--rule) 55%, transparent) 32px
+    );
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
-/* ---------- Scroll reveal ---------- */
+/* ---------- Scroll reveal ----------
+   Kept short and small on purpose. The 16px/600ms fade-up on every element is
+   the tell that a machine chose the motion, because it is applied to everything
+   regardless of what the thing is. This is a settle, not an entrance: the real
+   motion on this page is in the rhythm wall, where it carries meaning. */
 .reveal {
   opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(5px);
+  transition: opacity 0.34s ease, transform 0.34s cubic-bezier(0.2, 0.7, 0.3, 1);
   will-change: opacity, transform;
 }
 .reveal.in {
   opacity: 1;
   transform: none;
+}
+
+/* ---------- The owner's marks ----------
+   A grease-pencil ring drawn around a name, the way it would be circled in the
+   book. Stroke-dashoffset so it draws rather than appears, slightly over one
+   revolution so the ends overshoot and cross like a real hand. */
+.circle-mark path {
+  stroke-dasharray: 760;
+  stroke-dashoffset: 760;
+  animation: drawRing 0.85s cubic-bezier(0.5, 0, 0.3, 1) forwards;
+}
+@keyframes drawRing {
+  to { stroke-dashoffset: 0; }
+}
+
+/* A visit, inked onto the line. Lands slightly heavy then settles, like a nib. */
+@keyframes inkTick {
+  0% { opacity: 0; transform: scaleY(0.2); }
+  70% { opacity: 1; transform: scaleY(1.25); }
+  100% { opacity: 1; transform: scaleY(1); }
+}
+
+/* BOOKED, hit with a rubber stamp: too big, rotated, then bites down. */
+@keyframes stampDown {
+  0% { opacity: 0; transform: rotate(-9deg) scale(2.1); }
+  60% { opacity: 1; transform: rotate(-9deg) scale(0.94); }
+  80% { transform: rotate(-9deg) scale(1.04); }
+  100% { opacity: 1; transform: rotate(-9deg) scale(1); }
+}
+.stamp-mark {
+  animation: stampDown 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
 }
 
 /* ---------- Marquee ---------- */
@@ -317,4 +460,8 @@ h1, h2, h3 {
   .caret { display: none; }
   /* Without the fall animation these would sit frozen at the top of the card. */
   .confetti-piece { display: none; }
+  /* The ring is drawn by an animation; without it the dash offset would leave
+     the path invisible, so show it complete. */
+  .circle-mark path { stroke-dashoffset: 0; }
+  .stamp-mark { opacity: 1; transform: rotate(-9deg) scale(1); }
 }

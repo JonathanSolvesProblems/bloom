@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel, type Assessed, type ClientLike } from '@/lib/retention'
 import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
+import RhythmStrip from '@/components/RhythmStrip'
 import {
   ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
 } from 'lucide-react'
@@ -347,17 +348,26 @@ function ClientRow({
           </div>
           <p className="text-sm text-muted leading-relaxed">{a.reason}</p>
 
+          {/* Their rhythm, and the gap in it. Same drawing as the homepage, on
+              their real numbers: this is the evidence behind the verdict, so it
+              belongs next to the verdict. */}
+          <RhythmStrip
+            cadenceDays={client.cadenceDays}
+            daysSince={a.daysSince}
+            visitCount={client.visitCount}
+            alarm={a.level === 'critical' || a.level === 'at_risk'}
+          />
+
           {cliffPct !== null && (
-            <div className="mt-3 max-w-sm">
+            <div className="mt-3 max-w-md">
               <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                <span className="text-red-500 font-semibold">{a.daysToCliff} days left</span>
+                <span className="text-pencil font-semibold">{a.daysToCliff} days left</span>
                 <span className="text-muted">before the {NEW_CLIENT_CLIFF_DAYS}-day cliff</span>
               </div>
-              <div className="h-1.5 rounded-full bg-border overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-red-500 to-accent-coral transition-all"
-                  style={{ width: `${cliffPct}%` }}
-                />
+              {/* A countdown, not a progress bar: it drains left as the window
+                  shuts, and it is drawn in pencil because it is an alarm. */}
+              <div className="h-1 bg-border overflow-hidden">
+                <div className="h-full bg-pencil transition-all" style={{ width: `${cliffPct}%` }} />
               </div>
             </div>
           )}

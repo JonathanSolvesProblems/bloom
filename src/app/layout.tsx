@@ -1,11 +1,25 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
-import { Bricolage_Grotesque, Inter, Instrument_Serif, Geist_Mono } from 'next/font/google'
+import { Fraunces, Inter, Instrument_Serif, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
-const bricolage = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage' })
+/**
+ * Fraunces carries the voice. Its SOFT and WONK axes were built to undo the
+ * evenness of a modern grotesque: wonky italics, softened terminals, optical
+ * sizing that makes a headline look cut for its size rather than scaled to it.
+ * The result reads as set by a person, which is the entire point, and it is the
+ * fastest single change away from the default look every generated site shares.
+ */
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  axes: ['SOFT', 'WONK', 'opsz'],
+})
+// Kept for dense UI only (labels, inputs, small print), where personality would
+// cost legibility and nobody is reading for pleasure.
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const instrument = Instrument_Serif({ weight: '400', style: 'italic', subsets: ['latin'], variable: '--font-instrument' })
+// The ledger hand: dates, counts, money, tick marks.
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
@@ -33,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       data-theme={theme}
       style={theme ? { colorScheme: theme } : undefined}
       suppressHydrationWarning
-      className={`h-full ${bricolage.variable} ${inter.variable} ${instrument.variable} ${geistMono.variable}`}
+      className={`h-full ${fraunces.variable} ${inter.variable} ${instrument.variable} ${geistMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
