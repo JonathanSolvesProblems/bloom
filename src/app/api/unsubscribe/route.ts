@@ -27,41 +27,25 @@ function message(title: string, body: string): Response {
  * this form submits, which is also the RFC 8058 one-click target mail clients
  * hit directly.
  */
-function confirmPage(query: string, name: string, what: string): Response {
-  return shell('Unsubscribe', `<h1 style="font-size:1.35rem;margin:0 0 10px">Unsubscribe from ${name}?</h1>
-    <p style="color:#5b6b62;line-height:1.6;margin:0 0 20px">You will stop receiving ${what} from ${name}.</p>
+function confirmPage(query: string, what: string): Response {
+  return shell('Unsubscribe', `<h1 style="font-size:1.35rem;margin:0 0 10px">Unsubscribe?</h1>
+    <p style="color:#5b6b62;line-height:1.6;margin:0 0 20px">You will stop receiving ${what} from this business.</p>
     <form method="post" action="/api/unsubscribe?${query}">
       <button type="submit" style="background:#059669;color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer">Yes, unsubscribe me</button>
     </form>`)
-}
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export async function GET(request: NextRequest) {
   const subId = request.nextUrl.searchParams.get('s')
   const clientId = request.nextUrl.searchParams.get('c')
 
-  // Always show the same confirm page whether or not the id resolves, so the
-  // link is never a probe for membership.
-  if (clientId) {
-    const client = await db.client.findUnique({
-      where: { id: clientId },
-      include: { business: { select: { name: true } } },
-    })
-    const name = esc(client?.business?.name ?? 'this business')
-    return confirmPage(`c=${encodeURIComponent(clientId)}`, name, 'emails')
-  }
-
-  if (!subId) return message('Link not valid', 'This unsubscribe link is missing its identifier.')
-
-  const sub = await db.subscriber.findUnique({
-    where: { id: subId },
-    include: { business: { select: { name: true } } },
-  })
-  const name = esc(sub?.business?.name ?? 'this business')
-  return confirmPage(`s=${encodeURIComponent(subId)}`, name, 'newsletters')
+  // The page renders identically whether or not the id resolves, so it cannot be
+  // used to test whether an address is on a list. Naming the business would leak
+  // exactly that, and it is not needed: whoever clicked this arrived from the
+  // email itself and already knows who sent it.
+  if (clientId) return confirmPage(`c=${encodeURIComponent(clientId)}`, 'emails')
+  if (subId) return confirmPage(`s=${encodeURIComponent(subId)}`, 'newsletters')
+  return message('Link not valid', 'This unsubscribe link is missing its identifier.')
 }
 
 // One-click unsubscribe (RFC 8058) and the confirm-page submit both land here.

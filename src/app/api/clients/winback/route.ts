@@ -5,7 +5,7 @@ import { draftWinBack } from '@/lib/gemini'
 import { assess, businessCadence } from '@/lib/retention'
 import { brandEmail } from '@/lib/email-template'
 import { publicBaseUrl } from '@/lib/config'
-import { appBaseUrl } from '@/lib/agent-run'
+import { appBaseUrl, esc, sanitizeSenderName } from '@/lib/agent-run'
 import { allowForKey, underGlobalCap, LIMITS, GLOBAL_LIMITS } from '@/lib/ratelimit'
 
 export const maxDuration = 60
@@ -89,6 +89,19 @@ export async function POST(request: NextRequest) {
 
   const a = assess(client, businessCadence(business.clients))
 
+  // Claim the send BEFORE drafting, not just before sending. The read at the top
+  // of this route is a snapshot, so two quick submits both sail past it; claiming
+  // first means the loser stops here instead of paying for a second Gemini call
+  // and then being told it was already sent. Released again if anything below
+  // fails, so a transient error does not lock the client out forever.
+  const claim = await db.client.updateMany({
+    where: { id: client.id, winBackSentAt: null },
+    data: { winBackSentAt: new Date() },
+  })
+  if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
+
+  const release = () => db.client.updateMany({ where: { id: client.id }, data: { winBackSentAt: null } })
+
   let draft
   try {
     draft = await draftWinBack({
@@ -112,16 +125,10 @@ export async function POST(request: NextRequest) {
       situation: a.reason,
     })
   } catch (err) {
+    await release()
     console.error('Win-back draft failed:', err)
     return Response.redirect(back('import_error=Could%20not%20write%20the%20message%2C%20try%20again'), 303)
   }
-
-  // Claim the send BEFORE emailing, so a double-submit cannot send twice.
-  const claim = await db.client.updateMany({
-    where: { id: client.id, winBackSentAt: null },
-    data: { winBackSentAt: new Date() },
-  })
-  if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
 
   // Sample data: draft it, show the owner what the agent wrote, but do not put a
   // guaranteed bounce through the shared sending domain. The claim above still
@@ -159,14 +166,14 @@ export async function POST(request: NextRequest) {
   })}
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
 <p style="font-size:12px;line-height:1.5;color:#6b7280;text-align:center;font-family:sans-serif">
-  ${business.mailingAddress}<br />
+  ${esc(business.mailingAddress)}<br />
   <a href="${unsubUrl}" style="color:#6b7280">Unsubscribe</a>
 </p>`
 
   try {
     const resend = new Resend(apiKey)
     const { error } = await resend.emails.send({
-      from: `${business.name.replace(/[\r\n"<>]/g, ' ').trim() || 'Bloom'} <hello@${fromDomain}>`,
+      from: `${sanitizeSenderName(business.name)} <hello@${fromDomain}>`,
       to: client.email,
       subject: draft.subject,
       html,
@@ -178,7 +185,7 @@ export async function POST(request: NextRequest) {
     if (error) throw new Error(error.message ?? JSON.stringify(error))
   } catch (err) {
     // Release the claim so the owner can retry.
-    await db.client.updateMany({ where: { id: client.id }, data: { winBackSentAt: null } })
+    await release()
     console.error('Win-back send failed:', err)
     return Response.redirect(back('import_error=Send%20failed%2C%20try%20again'), 303)
   }

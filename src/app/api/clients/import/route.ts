@@ -50,30 +50,53 @@ export async function POST(request: NextRequest) {
 
   const clients = result.clients.slice(0, MAX_CLIENTS)
 
-  // Everyone the agent wrote to who has now booked again. This is the payoff, and
-  // the only number here that is measured rather than estimated.
-  const cameBackNames: string[] = []
+  // Everyone the agent wrote to who has now booked again. Keyed by email, which is
+  // the actual unique constraint: two clients can share a display name, and
+  // crediting both for one save would inflate the only number here that is
+  // supposed to be measured rather than estimated.
+  const cameBackEmails: string[] = []
 
   // Read the whole existing book once. Asking the database per client would be
   // thousands of sequential round-trips to Neon, and a shop with a real client
   // list would blow the 60s limit before it saw a single result.
   const prior = await db.client.findMany({
     where: { businessId },
-    select: { email: true, visitCount: true, winBackSentAt: true, recoveredAt: true },
+    select: {
+      email: true,
+      firstVisitAt: true,
+      lastVisitAt: true,
+      visitCount: true,
+      lastService: true,
+      avgSpend: true,
+      cadenceDays: true,
+      winBackSentAt: true,
+      recoveredAt: true,
+    },
   })
   const priorByEmail = new Map(prior.map((p) => [p.email, p]))
 
-  // Upsert so re-importing a fresh export updates the book rather than duplicating
-  // it. A client who booked again since the last import gets a new lastVisitAt and
-  // visitCount, which is exactly how a win-back gets marked as recovered below.
+  // MERGE, never overwrite. An export is a window, not the truth: the UI tells
+  // owners to "export a shorter date range" when a file is too big, and invites a
+  // fresh upload any time. Taking the file at face value would rewrite a 20-visit
+  // regular as a first-timer the moment someone uploaded last month only, and the
+  // agent would then write to her saying she came once and never rebooked. Her
+  // real history is not recoverable, because only the aggregate is stored.
   const writes = clients.map((c) => {
     const existing = priorByEmail.get(c.email)
 
-    // Recovery is MEASURED, not claimed: they were sent a win-back, and now the
-    // fresh export shows a visit they did not have before.
+    // Recovery is MEASURED, not claimed, and the measure has to be a visit that
+    // happened AFTER the agent wrote to her. Comparing visit counts instead would
+    // fire on any wider export (12 months where 3 were imported before), crediting
+    // a save that never happened.
     const cameBack =
-      !!existing && !!existing.winBackSentAt && !existing.recoveredAt && c.visitCount > existing.visitCount
-    if (cameBack) cameBackNames.push(c.name)
+      !!existing &&
+      !!existing.winBackSentAt &&
+      !existing.recoveredAt &&
+      c.lastVisitAt > existing.lastVisitAt &&
+      c.lastVisitAt > existing.winBackSentAt
+    if (cameBack) cameBackEmails.push(c.email)
+
+    const isNewer = !existing || c.lastVisitAt >= existing.lastVisitAt
 
     return db.client.upsert({
       where: { businessId_email: { businessId, email: c.email } },
@@ -90,12 +113,17 @@ export async function POST(request: NextRequest) {
       },
       update: {
         name: c.name,
-        firstVisitAt: c.firstVisitAt,
-        lastVisitAt: c.lastVisitAt,
-        visitCount: c.visitCount,
-        lastService: c.lastService,
-        avgSpend: c.avgSpend,
-        cadenceDays: c.cadenceDays,
+        // Widen the window in both directions, never narrow it.
+        firstVisitAt: existing && existing.firstVisitAt < c.firstVisitAt ? existing.firstVisitAt : c.firstVisitAt,
+        lastVisitAt: existing && existing.lastVisitAt > c.lastVisitAt ? existing.lastVisitAt : c.lastVisitAt,
+        // Worst case this undercounts (a partial export), which is the safe
+        // direction: it can never invent visits that did not happen.
+        visitCount: existing ? Math.max(existing.visitCount, c.visitCount) : c.visitCount,
+        // A single-visit window yields no cadence; keep what we already knew.
+        cadenceDays: c.cadenceDays ?? existing?.cadenceDays ?? null,
+        // Only the more recent export knows what she last had done.
+        lastService: isNewer ? c.lastService : (existing?.lastService ?? ''),
+        avgSpend: c.avgSpend > 0 ? c.avgSpend : (existing?.avgSpend ?? 0),
         ...(cameBack ? { recoveredAt: new Date() } : {}),
       },
     })
@@ -125,27 +153,30 @@ export async function POST(request: NextRequest) {
         critical: summary.critical,
         atRisk: summary.atRisk,
         revenueAtRisk: summary.revenueAtRisk,
-        cameBack: cameBackNames.length,
+        cameBack: cameBackEmails.length,
       }),
     },
   })
 
-  if (cameBackNames.length) {
+  const recovered = assessed.filter((a) => cameBackEmails.includes(a.email))
+
+  if (recovered.length) {
     // Worth its own entry in the feed: a save is the only thing here the agent
     // can be judged on, and it is proven by the owner's own fresh export.
-    const value = assessed
-      .filter((a) => cameBackNames.includes(a.name))
-      .reduce((sum, a) => sum + a.assessment.annualValue, 0)
+    const value = recovered.reduce((sum, a) => sum + a.assessment.annualValue, 0)
+    const names = recovered.map((a) => a.name)
     await db.agentLog.create({
       data: {
         businessId,
         action: 'client_recovered',
-        summary: `${cameBackNames.join(', ')} booked again after I reached out. About $${value.toLocaleString()} a year saved.`.slice(0, 200),
-        details: JSON.stringify({ clients: cameBackNames, annualValue: value }),
+        summary: `${names.join(', ')} booked again after I reached out. About $${value.toLocaleString()} a year saved.`.slice(0, 200),
+        details: JSON.stringify({ clients: recovered.map((a) => a.email), annualValue: value }),
       },
     })
   }
 
-  const won = cameBackNames.length ? `&recovered=${encodeURIComponent(cameBackNames.join(', '))}` : ''
+  const won = recovered.length
+    ? `&recovered=${encodeURIComponent(recovered.map((a) => a.name).join(', '))}`
+    : ''
   return Response.redirect(back(`imported=${clients.length}${won}`), 303)
 }

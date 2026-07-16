@@ -81,7 +81,11 @@ export function parseBookingCsv(text: string, now: Date = new Date()): ImportRes
     return { clients: [], visitsParsed: 0, rowsSkipped: 0, columnsUsed: {}, error: 'That file has no rows I can read.' }
   }
 
-  const headers = Object.keys(rows[0] ?? {})
+  // Papa's meta.fields is the parsed header row. Object.keys(rows[0]) is NOT the
+  // same thing: it only lists fields present in that one row, so an export whose
+  // first appointment has no service or price would hide those columns, and one
+  // that omits a trailing empty email would get the whole file rejected.
+  const headers = parsed.meta?.fields?.length ? parsed.meta.fields : Object.keys(rows[0] ?? {})
   // Email is the only truly required column: it is the identity key and the only
   // way the agent can reach the client later.
   const emailCol = findColumn(headers, ['email', 'mail'])
@@ -134,6 +138,41 @@ export function parseBookingCsv(text: string, now: Date = new Date()): ImportRes
   return { clients: aggregate(visits), visitsParsed: visits.length, rowsSkipped: skipped, columnsUsed }
 }
 
+const dayKey = (d: Date) => d.toISOString().slice(0, 10)
+
+/**
+ * One appointment per client per day.
+ *
+ * Square, Fresha and Vagaro all export a ROW PER LINE ITEM, so a single visit for
+ * "Cut" plus "Colour" arrives as two rows. Counting those as two visits is not a
+ * rounding error, it silently breaks the most important case in the product: a
+ * first-timer with a two-service appointment gets visitCount 2, so she is read as
+ * a returning regular instead of someone sitting on the 30-day cliff, and the one
+ * client the agent most needed to catch never surfaces.
+ *
+ * Same-day line items are merged: their prices sum (that is what the visit was
+ * worth) and their services join (that is what she had done).
+ */
+function mergeSameDay(list: ParsedVisit[]): ParsedVisit[] {
+  const byDay = new Map<string, ParsedVisit[]>()
+  for (const v of list) {
+    const k = dayKey(v.date)
+    const items = byDay.get(k)
+    if (items) items.push(v)
+    else byDay.set(k, [v])
+  }
+
+  return [...byDay.values()].map((items) => {
+    const services = [...new Set(items.map((i) => i.service).filter(Boolean))]
+    return {
+      ...items[0],
+      // The appointment is worth the sum of its line items, not the average.
+      price: items.reduce((s, i) => s + i.price, 0),
+      service: services.join(' and '),
+    }
+  })
+}
+
 /** Collapse a visit list into one row per client, with their own rhythm. */
 export function aggregate(visits: ParsedVisit[]): ClientAggregate[] {
   const byEmail = new Map<string, ParsedVisit[]>()
@@ -144,7 +183,8 @@ export function aggregate(visits: ParsedVisit[]): ClientAggregate[] {
   }
 
   const out: ClientAggregate[] = []
-  for (const [email, list] of byEmail) {
+  for (const [email, rawList] of byEmail) {
+    const list = mergeSameDay(rawList)
     list.sort((a, b) => a.date.getTime() - b.date.getTime())
     const first = list[0]
     const last = list[list.length - 1]

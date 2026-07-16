@@ -89,7 +89,7 @@ export default async function ClientRadarPage({
                 ? 'That file is larger than 5 MB. Export a shorter date range.'
                 : importError === 'norows'
                   ? 'I could not find any rows with both an email and a date.'
-                  : decodeURIComponent(importError)}
+                  : importError}
           </div>
         )}
         {imported && !recovered && (

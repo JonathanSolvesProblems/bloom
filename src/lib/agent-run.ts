@@ -172,7 +172,7 @@ const UNSUB_COPY: Record<string, { line: (b: string) => string; link: string }> 
 }
 
 /** Escape text before it goes into the newsletter footer HTML. */
-function esc(s: string): string {
+export function esc(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -185,7 +185,7 @@ function esc(s: string): string {
  * Strip anything that could break out of the RFC 5322 phrase or inject a header:
  * quotes, angle brackets, and any control characters including CR/LF.
  */
-function sanitizeSenderName(name: string): string {
+export function sanitizeSenderName(name: string): string {
   const clean = name.replace(/[\r\n"<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
   return clean || 'Newsletter'
 }
