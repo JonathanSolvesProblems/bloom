@@ -50,6 +50,10 @@ export async function POST(request: NextRequest) {
 
   const clients = result.clients.slice(0, MAX_CLIENTS)
 
+  // Everyone the agent wrote to who has now booked again. This is the payoff, and
+  // the only number here that is measured rather than estimated.
+  const cameBackNames: string[] = []
+
   // Upsert so re-importing a fresh export updates the book rather than duplicating
   // it. A client who booked again since the last import gets a new lastVisitAt and
   // visitCount, which is exactly how a win-back gets marked as recovered below.
@@ -63,6 +67,7 @@ export async function POST(request: NextRequest) {
     // fresh export shows a visit they did not have before.
     const cameBack =
       !!existing && !!existing.winBackSentAt && !existing.recoveredAt && c.visitCount > existing.visitCount
+    if (cameBack) cameBackNames.push(c.name)
 
     await db.client.upsert({
       where: { businessId_email: { businessId, email: c.email } },
@@ -91,7 +96,8 @@ export async function POST(request: NextRequest) {
   }
 
   const stored = await db.client.findMany({ where: { businessId } })
-  const summary = summarize(assessAll(stored))
+  const assessed = assessAll(stored)
+  const summary = summarize(assessed)
 
   await db.agentLog.create({
     data: {
@@ -106,9 +112,27 @@ export async function POST(request: NextRequest) {
         critical: summary.critical,
         atRisk: summary.atRisk,
         revenueAtRisk: summary.revenueAtRisk,
+        cameBack: cameBackNames.length,
       }),
     },
   })
 
-  return Response.redirect(back(`imported=${clients.length}`), 303)
+  if (cameBackNames.length) {
+    // Worth its own entry in the feed: a save is the only thing here the agent
+    // can be judged on, and it is proven by the owner's own fresh export.
+    const value = assessed
+      .filter((a) => cameBackNames.includes(a.name))
+      .reduce((sum, a) => sum + a.assessment.annualValue, 0)
+    await db.agentLog.create({
+      data: {
+        businessId,
+        action: 'client_recovered',
+        summary: `${cameBackNames.join(', ')} booked again after I reached out. About $${value.toLocaleString()} a year saved.`.slice(0, 200),
+        details: JSON.stringify({ clients: cameBackNames, annualValue: value }),
+      },
+    })
+  }
+
+  const won = cameBackNames.length ? `&recovered=${encodeURIComponent(cameBackNames.join(', '))}` : ''
+  return Response.redirect(back(`imported=${clients.length}${won}`), 303)
 }

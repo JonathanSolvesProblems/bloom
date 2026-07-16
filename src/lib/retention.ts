@@ -77,10 +77,20 @@ export function computeCadenceDays(visitDates: Date[]): number | null {
   return Math.max(1, median)
 }
 
-/** Yearly value of a client if they keep their rhythm. */
+/**
+ * Yearly value of a client if they keep their rhythm.
+ *
+ * Deliberately conservative: a client's own cadence is only trusted for money
+ * once there are at least two gaps to take a median of. One gap is a guess, and
+ * an eager one, two visits a fortnight apart would imply 26 visits a year and
+ * value someone at three times what they are really worth. Risk still judges
+ * them on their own cadence (a rhythm of one gap is the best read available);
+ * only the dollar figure falls back, because that is the number an owner will
+ * quote back at me.
+ */
 export function annualValue(c: ClientLike, fallbackCadence: number): number {
-  const cadence = c.cadenceDays ?? fallbackCadence
-  const visitsPerYear = 365 / Math.max(1, cadence)
+  const trusted = c.visitCount >= 3 && c.cadenceDays ? c.cadenceDays : fallbackCadence
+  const visitsPerYear = 365 / Math.max(1, trusted)
   return Math.round(c.avgSpend * visitsPerYear)
 }
 

@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel } from '@/lib/retention'
 import CountUp from '@/components/CountUp'
-import { ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2 } from 'lucide-react'
+import Celebrate from '@/components/Celebrate'
+import { ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,16 @@ export default async function ClientRadarPage({
   searchParams,
 }: {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ t?: string; imported?: string; import_error?: string; sent?: string }>
+  searchParams: Promise<{
+    t?: string
+    imported?: string
+    import_error?: string
+    sent?: string
+    recovered?: string
+  }>
 }) {
   const { businessId } = await params
-  const { t, imported, import_error: importError, sent } = await searchParams
+  const { t, imported, import_error: importError, sent, recovered } = await searchParams
 
   const business = await db.business.findUnique({
     where: { id: businessId },
@@ -70,9 +77,26 @@ export default async function ClientRadarPage({
                   : decodeURIComponent(importError)}
           </div>
         )}
-        {imported && (
+        {imported && !recovered && (
           <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-4 text-sm text-foreground">
             Read {imported} clients from your booking history.
+          </div>
+        )}
+        {recovered && (
+          // The one moment worth celebrating: they were going, the agent wrote to
+          // them, and the owner's own export proves they came back.
+          <div className="relative overflow-hidden bg-brand-emerald/[0.09] border border-brand-emerald/40 rounded-xl p-5">
+            <Celebrate />
+            <div className="relative flex items-start gap-3">
+              <PartyPopper className="w-5 h-5 text-brand-emerald shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground">{recovered} came back.</p>
+                <p className="text-sm text-muted mt-1">
+                  They were slipping away, I wrote to them, and they booked again. That is not a projection, it is in
+                  the export you just uploaded.
+                </p>
+              </div>
+            </div>
           </div>
         )}
         {sent && (
@@ -109,7 +133,13 @@ export default async function ClientRadarPage({
                 </div>
                 <div className="text-sm text-muted mt-1">a year, if you do nothing</div>
               </div>
-              <div className="card bg-card">
+              <div
+                className={`card bg-card relative overflow-hidden ${
+                  recovered ? 'ring-2 ring-brand-emerald/40' : ''
+                }`}
+              >
+                {/* Only when a save actually landed on this import. */}
+                {recovered && <Celebrate />}
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-brand-emerald" /> Won back
                 </div>
@@ -303,15 +333,28 @@ function ImportCard({ businessId, token, compact }: { businessId: string; token:
           Analyze my clients
         </button>
       </div>
-      {!compact && (
-        <p className="text-xs text-muted mt-3">
-          No export handy?{' '}
-          <a href="/api/sample-csv" className="text-brand-teal-text underline underline-offset-2 hover:no-underline">
-            Download a sample booking history
-          </a>{' '}
-          and upload it to see how this works.
-        </p>
-      )}
+      <p className="text-xs text-muted mt-3">
+        {compact ? (
+          <>
+            Trying it out? This{' '}
+            <a
+              href="/api/sample-csv?returned=1"
+              className="text-brand-teal-text underline underline-offset-2 hover:no-underline"
+            >
+              follow-up sample
+            </a>{' '}
+            is the same book a few days later, with one client rebooked after a win-back.
+          </>
+        ) : (
+          <>
+            No export handy?{' '}
+            <a href="/api/sample-csv" className="text-brand-teal-text underline underline-offset-2 hover:no-underline">
+              Download a sample booking history
+            </a>{' '}
+            and upload it to see how this works.
+          </>
+        )}
+      </p>
     </form>
   )
 }

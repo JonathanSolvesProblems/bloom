@@ -281,6 +281,33 @@ h1, h2, h3 {
   50% { opacity: 0; }
 }
 
+/* ---------- Won-back celebration ----------
+   The one genuinely joyful moment in the product: a client who was written off
+   actually rebooked. It is earned (recovery is measured, not claimed), so it
+   gets a real burst. Everything else on that screen stays sober, because the
+   rest of it is money walking out the door. */
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: 7px;
+  height: 11px;
+  background: var(--c);
+  border-radius: 1px;
+  opacity: 0;
+  animation: confettiFall var(--dur) cubic-bezier(0.2, 0.6, 0.5, 1) var(--delay) forwards;
+}
+@keyframes confettiFall {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, -8px, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)) scale(0.7);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
@@ -288,4 +315,6 @@ h1, h2, h3 {
   }
   .reveal { opacity: 1; transform: none; }
   .caret { display: none; }
+  /* Without the fall animation these would sit frozen at the top of the card. */
+  .confetti-piece { display: none; }
 }

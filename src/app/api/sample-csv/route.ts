@@ -35,8 +35,14 @@ function regular(name: string, service: string, cadence: number, count: number, 
   }))
 }
 
-function buildRows(): Visit[] {
-  return [
+/**
+ * `?returned=1` is the same book a few days later, with one difference: Nina,
+ * the first-timer who was about to fall off the 30-day cliff, has booked a
+ * second visit. Uploading it after a win-back is what proves a save, since
+ * recovery is only ever measured against the owner's own fresh export.
+ */
+function buildRows(returned: boolean): Visit[] {
+  const rows: Visit[] = [
     // On rhythm: a 5-week regular seen 4 weeks ago. The radar must leave her alone.
     ...regular('Priya Raman', 'Cut and colour', 35, 6, 28),
     // The thesis, as a matched pair. Both were last in 44 days ago, so any
@@ -60,6 +66,20 @@ function buildRows(): Visit[] {
     // Long gone: one visit, 5 months ago. Worth one honest attempt, not a priority.
     { name: 'Colin Grady', email: 'colin.grady@example.com', service: 'Cut and style', price: 75, daysAgo: 154 },
   ]
+
+  if (returned) {
+    // Nina answered the note and rebooked two days ago. Her second visit is what
+    // flips her from "about to be lost" to a measured save.
+    rows.push({
+      name: 'Nina Kowalski',
+      email: 'nina.kowalski@example.com',
+      service: 'Root touch-up',
+      price: 95,
+      daysAgo: 2,
+    })
+  }
+
+  return rows
 }
 
 function toDate(daysAgo: number): string {
@@ -67,8 +87,10 @@ function toDate(daysAgo: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export async function GET() {
-  const rows = buildRows()
+export async function GET(request: Request) {
+  const returned = new URL(request.url).searchParams.get('returned') === '1'
+
+  const rows = buildRows(returned)
     .sort((a, b) => b.daysAgo - a.daysAgo)
     // Deliberately messy headers and column order: this is what a real export looks
     // like, and the importer is supposed to cope with it.
@@ -79,7 +101,7 @@ export async function GET() {
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="sample-bookings.csv"',
+      'Content-Disposition': `attachment; filename="sample-bookings${returned ? '-week-later' : ''}.csv"`,
       'Cache-Control': 'no-store',
     },
   })

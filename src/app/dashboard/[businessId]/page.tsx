@@ -27,6 +27,7 @@ const ACTION_STYLES: Record<string, { label: string; dot: string }> = {
   qa_failed: { label: 'qa n/a', dot: 'bg-muted' },
   imported_clients: { label: 'read book', dot: 'bg-brand-teal' },
   winback_sent: { label: 'win back', dot: 'bg-accent-coral' },
+  client_recovered: { label: 'saved', dot: 'bg-brand-emerald' },
   subscription_activated: { label: 'activate', dot: 'bg-brand-emerald' },
   delivery_skipped: { label: 'hold', dot: 'bg-muted' },
   paused_delivery: { label: 'pause', dot: 'bg-accent-coral' },
