@@ -27,10 +27,10 @@ function message(title: string, body: string): Response {
  * this form submits, which is also the RFC 8058 one-click target mail clients
  * hit directly.
  */
-function confirmPage(id: string, name: string): Response {
+function confirmPage(query: string, name: string, what: string): Response {
   return shell('Unsubscribe', `<h1 style="font-size:1.35rem;margin:0 0 10px">Unsubscribe from ${name}?</h1>
-    <p style="color:#5b6b62;line-height:1.6;margin:0 0 20px">You will stop receiving newsletters from ${name}.</p>
-    <form method="post" action="/api/unsubscribe?s=${encodeURIComponent(id)}">
+    <p style="color:#5b6b62;line-height:1.6;margin:0 0 20px">You will stop receiving ${what} from ${name}.</p>
+    <form method="post" action="/api/unsubscribe?${query}">
       <button type="submit" style="background:#059669;color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer">Yes, unsubscribe me</button>
     </form>`)
 }
@@ -40,27 +40,51 @@ function esc(s: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get('s')
-  if (!id) return message('Link not valid', 'This unsubscribe link is missing its identifier.')
+  const subId = request.nextUrl.searchParams.get('s')
+  const clientId = request.nextUrl.searchParams.get('c')
+
+  // Always show the same confirm page whether or not the id resolves, so the
+  // link is never a probe for membership.
+  if (clientId) {
+    const client = await db.client.findUnique({
+      where: { id: clientId },
+      include: { business: { select: { name: true } } },
+    })
+    const name = esc(client?.business?.name ?? 'this business')
+    return confirmPage(`c=${encodeURIComponent(clientId)}`, name, 'emails')
+  }
+
+  if (!subId) return message('Link not valid', 'This unsubscribe link is missing its identifier.')
 
   const sub = await db.subscriber.findUnique({
-    where: { id },
+    where: { id: subId },
     include: { business: { select: { name: true } } },
   })
-  // Always show the same confirm page whether or not the address is on a list,
-  // so the link is never a probe for membership.
   const name = esc(sub?.business?.name ?? 'this business')
-  return confirmPage(id, name)
+  return confirmPage(`s=${encodeURIComponent(subId)}`, name, 'newsletters')
 }
 
 // One-click unsubscribe (RFC 8058) and the confirm-page submit both land here.
 // Only a POST removes the subscriber.
 export async function POST(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get('s')
-  if (!id) return message('Link not valid', 'This unsubscribe link is missing its identifier.')
+  const subId = request.nextUrl.searchParams.get('s')
+  const clientId = request.nextUrl.searchParams.get('c')
+
+  // A client is the business's own booking history, not a mailing-list row, so
+  // opting out flags them instead of deleting them. The retention agent skips
+  // anyone carrying this flag, permanently.
+  if (clientId) {
+    await db.client.updateMany({
+      where: { id: clientId, unsubscribedAt: null },
+      data: { unsubscribedAt: new Date() },
+    })
+    return message('You are unsubscribed', 'You will not receive any more emails from this business.')
+  }
+
+  if (!subId) return message('Link not valid', 'This unsubscribe link is missing its identifier.')
 
   try {
-    await db.subscriber.delete({ where: { id } })
+    await db.subscriber.delete({ where: { id: subId } })
   } catch {
     /* already gone, or never existed: report success either way */
   }

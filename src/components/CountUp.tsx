@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 
 export default function CountUp({
   to,
+  prefix = '',
   suffix = '',
   duration = 1200,
 }: {
   to: number
+  prefix?: string
   suffix?: string
   duration?: number
 }) {
@@ -53,6 +55,7 @@ export default function CountUp({
 
   return (
     <span ref={ref}>
+      {prefix}
       {val.toLocaleString()}
       {suffix}
     </span>

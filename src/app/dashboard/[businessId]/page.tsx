@@ -2,10 +2,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   Sparkles, Mail, Users, CalendarClock, ArrowRight,
-  ExternalLink, Zap, CheckCircle2, Clock, TrendingUp, Activity
+  ExternalLink, Zap, CheckCircle2, Clock, TrendingUp, Activity, Radar, AlertTriangle
 } from 'lucide-react'
 import { db } from '@/lib/db'
 import CopyField from '@/components/CopyField'
+import { assessAll, summarize } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,8 @@ const ACTION_STYLES: Record<string, { label: string; dot: string }> = {
   qa_review: { label: 'qa', dot: 'bg-brand-teal' },
   qa_regenerated: { label: 'rewrote', dot: 'bg-accent-coral' },
   qa_failed: { label: 'qa n/a', dot: 'bg-muted' },
+  imported_clients: { label: 'read book', dot: 'bg-brand-teal' },
+  winback_sent: { label: 'win back', dot: 'bg-accent-coral' },
   subscription_activated: { label: 'activate', dot: 'bg-brand-emerald' },
   delivery_skipped: { label: 'hold', dot: 'bg-muted' },
   paused_delivery: { label: 'pause', dot: 'bg-accent-coral' },
@@ -48,6 +51,7 @@ export default async function DashboardPage({
       weeklyContent: { orderBy: { createdAt: 'desc' }, take: 10 },
       agentLogs: { orderBy: { createdAt: 'desc' }, take: 20 },
       subscribers: { orderBy: { createdAt: 'desc' } },
+      clients: true,
     },
   })
 
@@ -65,6 +69,9 @@ export default async function DashboardPage({
   const subscriberCount = business.subscribers.length
   const tokenQuery = encodeURIComponent(t)
   const hasMailingAddress = !!business.mailingAddress?.trim()
+
+  const radar = summarize(assessAll(business.clients))
+  const radarUrl = `/dashboard/${businessId}/clients?t=${tokenQuery}`
 
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -114,6 +121,89 @@ export default async function DashboardPage({
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {/* The flagship. Everything else Bloom does is content; this is money. */}
+        {business.clients.length === 0 ? (
+          <Link
+            href={radarUrl}
+            className="group block rounded-xl border border-border bg-card p-5 hover:border-brand-teal/40 transition-colors"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <Radar className="w-5 h-5 text-brand-teal-text shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-foreground">Find the clients you are about to lose</p>
+                <p className="text-sm text-muted mt-1">
+                  Upload your booking history and I will show you who is slipping, what they are worth, and write each
+                  one a personal note. Works with any Fresha, Square, Vagaro or Booksy export.
+                </p>
+              </div>
+              <span className="btn-outline text-sm py-2 px-4 shrink-0 group-hover:border-brand-teal/50">
+                Open client radar <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
+        ) : (
+          <Link
+            href={radarUrl}
+            className={`group block rounded-xl border p-5 transition-colors ${
+              radar.critical > 0
+                ? 'border-red-500/30 bg-red-500/[0.04] hover:border-red-500/50'
+                : 'border-border bg-card hover:border-brand-teal/40'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {radar.critical > 0 ? (
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                    </span>
+                  ) : (
+                    <Radar className="w-4 h-4 text-brand-teal-text" />
+                  )}
+                  <p className="font-semibold text-foreground">
+                    {radar.critical + radar.atRisk > 0
+                      ? `${radar.critical + radar.atRisk} ${radar.critical + radar.atRisk === 1 ? 'client is' : 'clients are'} slipping away`
+                      : 'Everyone is on their rhythm'}
+                  </p>
+                </div>
+                <p className="text-sm text-muted">
+                  {radar.critical + radar.atRisk > 0 ? (
+                    <>
+                      About{' '}
+                      <span className="font-semibold text-red-500 font-mono">
+                        ${radar.revenueAtRisk.toLocaleString()}
+                      </span>{' '}
+                      a year is at risk across {radar.total} clients. I can write each of them a personal note.
+                    </>
+                  ) : (
+                    <>Watching all {radar.total} clients against their own booking rhythm.</>
+                  )}
+                  {radar.recoveredCount > 0 && (
+                    <>
+                      {' '}
+                      <span className="text-brand-emerald-text font-semibold">
+                        ${radar.revenueRecovered.toLocaleString()} won back
+                      </span>{' '}
+                      so far.
+                    </>
+                  )}
+                </p>
+              </div>
+              <span className="btn-outline text-sm py-2 px-4 shrink-0 whitespace-nowrap">
+                {radar.critical > 0 ? (
+                  <>
+                    <AlertTriangle className="w-3.5 h-3.5" /> Act on them
+                  </>
+                ) : (
+                  <>Open client radar</>
+                )}{' '}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
+        )}
+
         {!isActive && (
           <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
             <Clock className="w-5 h-5 text-brand-emerald shrink-0" />

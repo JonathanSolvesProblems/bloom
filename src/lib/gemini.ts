@@ -388,3 +388,112 @@ export async function generateWeeklyContent(
     latencyMs: Date.now() - t0,
   }
 }
+
+const WINBACK_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    subject: { type: Type.STRING },
+    body: { type: Type.STRING },
+    reasoning: { type: Type.STRING },
+  },
+  required: ['subject', 'body', 'reasoning'],
+}
+
+export interface WinBackDraft {
+  subject: string
+  /** Simple inline-styled HTML paragraphs, wrapped in the business branding at send. */
+  body: string
+  /** Why the agent wrote it this way, recorded to the activity feed. */
+  reasoning: string
+  model: string
+  tokensUsed: number
+}
+
+/**
+ * Write one personal message to one specific client the business is about to
+ * lose.
+ *
+ * This is the part that cannot be done with a generic prompt: the agent is given
+ * this person's real history (what they had done last, how often they normally
+ * come, how far past their own rhythm they are) and has to sound like the owner
+ * noticed them personally. A blast would not work here, and would not deserve to.
+ */
+export async function draftWinBack(input: {
+  business: {
+    name: string
+    type: string
+    city: string
+    brandVoice: string
+    contentLanguage?: string | null
+    promotions?: string | null
+  }
+  client: { name: string; lastService: string; visitCount: number; cadenceDays: number | null; daysSince: number }
+  situation: string
+}): Promise<WinBackDraft> {
+  const { business, client: c } = input
+  const voiceDesc = VOICE_GUIDE[business.brandVoice] ?? 'friendly and approachable'
+  const code = (business.contentLanguage || 'en').toLowerCase()
+  const lang = LANGUAGES[code] ?? 'English'
+  const language =
+    code === 'en'
+      ? ''
+      : `\nLANGUAGE: Write the subject and body natively in ${lang}, as a ${lang}-speaking owner would. Do not write in English and translate.`
+
+  // The agent must never invent a discount. Left to its own devices it offers
+  // free treatments the owner never authorized, and the client turns up expecting
+  // to be honoured. Only what the owner actually configured is on the table.
+  const promo = business.promotions?.trim()
+  const offer = promo
+    ? `\nWHAT YOU ARE ALLOWED TO OFFER (optional, only if it fits naturally):
+${promo}
+Offer nothing beyond this. Do not improve it, round it up, or add anything to it.`
+    : `\nYOU HAVE NOTHING TO GIVE AWAY. Do NOT offer a discount, a freebie, a complimentary treatment, an upgrade, a gift, or any other incentive. You have not been authorised to spend the owner's money and inventing an offer would commit them to honouring it. The reason to come back is that you remember them and their ${c.lastService || 'last visit'} is due, nothing more.`
+
+  const history =
+    c.visitCount === 1
+      ? `This is the part that matters: ${c.name} came in ONCE, ${c.daysSince} days ago${c.lastService ? ` for ${c.lastService}` : ''}, and never booked again. They have no habit with this business yet. If they do not come back soon, they almost certainly never will.`
+      : `${c.name} has been in ${c.visitCount} times${c.lastService ? `, last for ${c.lastService}` : ''}. They normally come about every ${c.cadenceDays} days, but it has now been ${c.daysSince} days. They are drifting, and they may not have noticed themselves.`
+
+  const prompt = `You are the owner of ${business.name}, a ${business.type} in ${business.city}. Your brand voice is ${business.brandVoice} (${voiceDesc}).
+
+You are writing ONE short email to ONE real client you are about to lose. Not a campaign. Not a blast. One message to one person you actually remember.
+
+WHO THEY ARE:
+- Name: ${c.name}
+- ${history}
+- The read on them: ${input.situation}
+${offer}${language}
+
+Write the email. Return JSON with exactly these keys:
+
+{
+  "subject": "A short, human subject line. It should read like it came from a person, not a marketing tool. 4 to 8 words. Do not use their full name like a mail merge.",
+  "body": "The email body as simple inline-styled HTML paragraphs (<p> tags only). 60 to 100 words.",
+  "reasoning": "1 to 2 sentences on why you wrote it this way for this specific person."
+}
+
+HOW TO WRITE IT (this decides whether it works):
+- Sound like the owner noticed, not like software noticed. Warm, brief, a little understated.
+- Reference something real and specific: what they had done last, or how long it has been. Do not invent details you were not given.
+- Give them one easy reason to come back: a gentle nudge to book. Never beg, never guilt them, never imply they did something wrong.
+- NO emojis. No hype words ("unlock", "elevate", "transform", "we miss you so much!!", "exclusive offer"). No exclamation-mark spam, at most one.
+- Open on THEM, not on pleasantries. Never open with generic well-wishing ("Hope you're doing wonderfully", "Hope this finds you well", "Hope you've been great"). Start with the specific thing you remember about them.
+- NEVER reveal how you know they are overdue. Do not write "going through our appointments", "checking our records", "our system flagged", "it's been X days since your last visit", or anything else implying a list was consulted. The owner simply thought of them. They must feel remembered, not tracked.
+- Short beats clever. If a line does not sound like a real person typing, cut it.
+- Sign off as ${business.name}. Do NOT add a subject line, greeting boilerplate, or an unsubscribe footer inside the body, those are added around it.
+
+Only return the JSON object.`
+
+  const { data, tokens } = await generateJson(prompt, WINBACK_SCHEMA)
+  const d = asObject(data)
+
+  return {
+    subject: str(d.subject) || `A quick note from ${business.name}`,
+    // The model authors this HTML and the client name is attacker-influenced, so
+    // it goes through the same allowlist sanitizer as the newsletter.
+    body: sanitizeNewsletterHtml(str(d.body)),
+    reasoning: str(d.reasoning),
+    model: usingVertex() ? `${MODEL} (vertex)` : MODEL,
+    tokensUsed: tokens,
+  }
+}

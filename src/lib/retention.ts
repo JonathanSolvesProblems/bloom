@@ -1,0 +1,236 @@
+/**
+ * The retention engine: works out who this business is about to lose, and what
+ * that costs them.
+ *
+ * The thresholds are not invented, they come from the industry research:
+ * - A first-time client who does not rebook within 30 days has only about a 20%
+ *   chance of ever returning. That makes days 7 to 30 after a first visit the
+ *   single highest-value moment to act, and it is the moment nobody is watching.
+ * - Salons lose roughly 40% of new clients within 12 months, the biggest single
+ *   profit leak in the business.
+ * - A regular client is worth $1,200 to $3,000 a year, so each save is real money.
+ *
+ * The part a prompt cannot do: risk is judged against each client's OWN rhythm.
+ * A 4-week regular at 6 weeks is drifting. An 8-week regular at 6 weeks is fine.
+ * That only comes from their real booking history.
+ */
+
+export type RiskLevel = 'critical' | 'at_risk' | 'watch' | 'safe' | 'lost'
+
+export type ClientLike = {
+  name: string
+  email: string
+  firstVisitAt: Date
+  lastVisitAt: Date
+  visitCount: number
+  lastService: string
+  avgSpend: number
+  cadenceDays: number | null
+  winBackSentAt?: Date | null
+  unsubscribedAt?: Date | null
+  recoveredAt?: Date | null
+}
+
+export type Assessment = {
+  level: RiskLevel
+  /** Plain sentence the owner can read, and the agent can act on. */
+  reason: string
+  daysSince: number
+  /** For a never-rebooked first-timer: days left before the 30-day cliff. */
+  daysToCliff: number | null
+  /** What this client is worth per year if they keep their rhythm. */
+  annualValue: number
+  /** Ranking weight so the agent works the most valuable saves first. */
+  priority: number
+}
+
+/** The 30-day rebooking cliff for first-time clients. */
+export const NEW_CLIENT_CLIFF_DAYS = 30
+/** Do not pester someone who was just in. */
+const NEW_CLIENT_GRACE_DAYS = 7
+/** Fallback rhythm when a business has no history to infer one from (6 weeks). */
+export const DEFAULT_CADENCE_DAYS = 42
+
+const DAY_MS = 86_400_000
+
+export function daysBetween(a: Date, b: Date): number {
+  return Math.floor((b.getTime() - a.getTime()) / DAY_MS)
+}
+
+/**
+ * A client's own rhythm: the MEDIAN gap between visits, not the mean. One
+ * six-month gap (a holiday, an injury) would drag a mean far enough to hide a
+ * real lapse; the median keeps the everyday rhythm.
+ */
+export function computeCadenceDays(visitDates: Date[]): number | null {
+  if (visitDates.length < 2) return null
+  const sorted = [...visitDates].sort((x, y) => x.getTime() - y.getTime())
+  const gaps: number[] = []
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = daysBetween(sorted[i - 1], sorted[i])
+    if (gap > 0) gaps.push(gap)
+  }
+  if (!gaps.length) return null
+  gaps.sort((x, y) => x - y)
+  const mid = Math.floor(gaps.length / 2)
+  const median = gaps.length % 2 ? gaps[mid] : Math.round((gaps[mid - 1] + gaps[mid]) / 2)
+  return Math.max(1, median)
+}
+
+/** Yearly value of a client if they keep their rhythm. */
+export function annualValue(c: ClientLike, fallbackCadence: number): number {
+  const cadence = c.cadenceDays ?? fallbackCadence
+  const visitsPerYear = 365 / Math.max(1, cadence)
+  return Math.round(c.avgSpend * visitsPerYear)
+}
+
+/**
+ * The median cadence across a business's regulars. Used to value a first-timer,
+ * who has no rhythm of their own yet but would likely settle into the shop's.
+ */
+export function businessCadence(clients: ClientLike[]): number {
+  const known = clients.map((c) => c.cadenceDays).filter((d): d is number => !!d)
+  if (!known.length) return DEFAULT_CADENCE_DAYS
+  known.sort((a, b) => a - b)
+  const mid = Math.floor(known.length / 2)
+  return known.length % 2 ? known[mid] : Math.round((known[mid - 1] + known[mid]) / 2)
+}
+
+export function assess(c: ClientLike, fallbackCadence: number, now: Date = new Date()): Assessment {
+  const daysSince = daysBetween(c.lastVisitAt, now)
+  const value = annualValue(c, fallbackCadence)
+
+  // Case 1: they came once and never rebooked. This is the 30-day cliff, and the
+  // most valuable thing the agent does, because after day 30 they are 80% gone.
+  if (c.visitCount === 1) {
+    const daysToCliff = NEW_CLIENT_CLIFF_DAYS - daysSince
+    if (daysSince <= NEW_CLIENT_GRACE_DAYS) {
+      return {
+        level: 'watch',
+        reason: `First visit ${daysSince} days ago. Still early, the window opens soon.`,
+        daysSince,
+        daysToCliff,
+        annualValue: value,
+        priority: 10 + value / 1000,
+      }
+    }
+    if (daysSince <= NEW_CLIENT_CLIFF_DAYS) {
+      return {
+        level: 'critical',
+        reason: `Came once, ${daysSince} days ago, and never rebooked. ${daysToCliff} days left before the 30-day cliff, after which only about 1 in 5 ever return.`,
+        daysSince,
+        daysToCliff,
+        annualValue: value,
+        // The highest priority in the whole system: a closing window on a client
+        // who has not formed a habit yet.
+        priority: 1000 + value / 100,
+      }
+    }
+    return {
+      level: 'lost',
+      reason: `Came once, ${daysSince} days ago, and never came back. Past the 30-day window, so the odds are long, but still worth one honest attempt.`,
+      daysSince,
+      daysToCliff: 0,
+      annualValue: value,
+      priority: 100 + value / 1000,
+    }
+  }
+
+  // Case 2: a regular. Judge them against their OWN rhythm, never a generic rule.
+  const cadence = c.cadenceDays ?? fallbackCadence
+  const ratio = daysSince / cadence
+
+  if (ratio <= 1.15) {
+    return {
+      level: 'safe',
+      reason: `On rhythm. Comes about every ${cadence} days, last in ${daysSince} days ago.`,
+      daysSince,
+      daysToCliff: null,
+      annualValue: value,
+      priority: 0,
+    }
+  }
+  if (ratio <= 1.5) {
+    return {
+      level: 'at_risk',
+      reason: `Usually comes every ${cadence} days but it has been ${daysSince}. Drifting past their own rhythm.`,
+      daysSince,
+      daysToCliff: null,
+      annualValue: value,
+      priority: 300 + value / 100,
+    }
+  }
+  if (ratio <= 2.5) {
+    return {
+      level: 'critical',
+      reason: `A ${cadence}-day regular who has not been in for ${daysSince} days, well past their rhythm. This is a real client slipping away.`,
+      daysSince,
+      daysToCliff: null,
+      annualValue: value,
+      priority: 800 + value / 100,
+    }
+  }
+  return {
+    level: 'lost',
+    reason: `Was a ${cadence}-day regular, now ${daysSince} days out. Probably gone somewhere else, worth one honest attempt.`,
+    daysSince,
+    daysToCliff: null,
+    annualValue: value,
+    priority: 200 + value / 1000,
+  }
+}
+
+export type Summary = {
+  total: number
+  critical: number
+  atRisk: number
+  safe: number
+  lost: number
+  /** Yearly revenue attached to everyone currently slipping (critical + at_risk). */
+  revenueAtRisk: number
+  /** Yearly revenue attached to clients who came back after a win-back. */
+  revenueRecovered: number
+  recoveredCount: number
+}
+
+export type Assessed = ClientLike & { assessment: Assessment }
+
+export function assessAll(clients: ClientLike[], now: Date = new Date()): Assessed[] {
+  const fallback = businessCadence(clients)
+  return clients
+    .map((c) => ({ ...c, assessment: assess(c, fallback, now) }))
+    .sort((a, b) => b.assessment.priority - a.assessment.priority)
+}
+
+export function summarize(assessed: Assessed[]): Summary {
+  const s: Summary = {
+    total: assessed.length,
+    critical: 0,
+    atRisk: 0,
+    safe: 0,
+    lost: 0,
+    revenueAtRisk: 0,
+    revenueRecovered: 0,
+    recoveredCount: 0,
+  }
+  for (const c of assessed) {
+    const { level, annualValue: v } = c.assessment
+    if (level === 'critical') {
+      s.critical++
+      s.revenueAtRisk += v
+    } else if (level === 'at_risk') {
+      s.atRisk++
+      s.revenueAtRisk += v
+    } else if (level === 'lost') {
+      s.lost++
+    } else {
+      s.safe++
+    }
+    // Recovered is measured, not claimed: they got a win-back and then booked.
+    if (c.recoveredAt) {
+      s.recoveredCount++
+      s.revenueRecovered += v
+    }
+  }
+  return s
+}

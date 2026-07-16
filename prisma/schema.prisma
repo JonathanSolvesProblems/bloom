@@ -42,11 +42,47 @@ model Business {
   subscribers          Subscriber[]
   weeklyContent        WeeklyContent[]
   agentLogs            AgentLog[]
+  clients              Client[]
 
   // The weekly dispatcher filters on subscriptionStatus; the Stripe webhook
   // looks a business up by stripeCustomerId. Both run on every event.
   @@index([subscriptionStatus])
   @@index([stripeCustomerId])
+}
+
+/// A real client of the business, imported from their booking history.
+///
+/// This is what makes the retention agent possible and hard to copy: it knows
+/// each person's own rhythm, not a generic rule. A 4-week regular who is 6 weeks
+/// out is in trouble; an 8-week regular at 6 weeks is fine. You cannot get that
+/// from a prompt, only from their actual booking history.
+model Client {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  businessId   String
+  business     Business  @relation(fields: [businessId], references: [id])
+  name         String
+  email        String
+  // Derived from the imported visit history at import time.
+  firstVisitAt DateTime
+  lastVisitAt  DateTime
+  visitCount   Int       @default(1)
+  lastService  String    @default("")
+  avgSpend     Float     @default(0)
+  /// Median days between this client's visits. Null when they have only ever
+  /// visited once, which is exactly the highest-risk case.
+  cadenceDays  Int?
+  /// Set when the agent has already reached out, so it never nags twice.
+  winBackSentAt DateTime?
+  /// Anti-spam law applies to win-back email too. Once set, the agent will never
+  /// contact this person again.
+  unsubscribedAt DateTime?
+  /// Set when they booked again after a win-back, which is how revenue recovered
+  /// is measured rather than claimed.
+  recoveredAt  DateTime?
+
+  @@unique([businessId, email])
+  @@index([businessId, lastVisitAt])
 }
 
 model Subscriber {

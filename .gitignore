@@ -53,3 +53,6 @@ demoscript.md
 shot-list.json
 *.edit-plan.json
 /broll/
+
+# share tracker (personal)
+SHARES.md
