@@ -11,6 +11,7 @@
  *
  * A server component: no interactivity, so nothing ships to the browser.
  */
+import Bloom from './Bloom'
 
 const LOOKBACK = 180
 
@@ -44,39 +45,34 @@ export default function RhythmStrip({
   return (
     <div className="mt-3 max-w-md">
       <div className="relative h-6">
-        <div className="absolute left-0 right-0 top-1/2 h-px bg-rule" />
-        {ticks.map((d) => (
+        {/* The stem they lived, then the stretch since. Pink only once the gap has
+            outgrown their own rhythm. */}
+        <div className="absolute top-1/2 h-px bg-leaf/45" style={{ left: 0, width: `${gapStart}%` }} />
+        <div
+          className={`absolute top-1/2 h-px ${alarm ? 'bg-pencil' : 'bg-leaf/45'}`}
+          style={{ left: `${gapStart}%`, right: 0 }}
+        />
+
+        {ticks.map((d, i) => (
           <span
             key={d}
-            className="absolute top-1/2 -translate-y-1/2 w-px h-2.5 bg-ink"
-            style={{ left: `${pct(d)}%` }}
-          />
-        ))}
-        {alarm && (
-          <svg
-            className="absolute inset-0 w-full h-full overflow-visible pointer-events-none"
-            viewBox="0 0 100 24"
-            preserveAspectRatio="none"
-            aria-hidden="true"
+            className="absolute top-1/2 leading-none"
+            style={{ left: `${pct(d)}%`, transform: 'translate(-50%, -50%)' }}
           >
-            <ellipse
-              cx={gapStart + ringW / 2}
-              cy="12"
-              rx={ringW / 2}
-              ry="9"
-              fill="none"
-              stroke="var(--pencil)"
-              strokeWidth="1.4"
-              vectorEffect="non-scaling-stroke"
+            <Bloom
+              size={11}
+              state={alarm && i === 0 ? 'fading' : 'full'}
+              color={alarm && i === 0 ? 'var(--pencil)' : 'var(--ink)'}
             />
-          </svg>
-        )}
+          </span>
+        ))}
+
         {/* Today. The right edge of the book. */}
         <span className="absolute right-0 top-0 bottom-0 w-px bg-ink" />
       </div>
       <p className="font-mono text-[10px] text-muted mt-1">
         {cadenceDays
-          ? `every ~${cadenceDays} days · ${daysSince} since the last`
+          ? `flowers every ~${cadenceDays} days · ${daysSince} since the last`
           : `one visit · ${daysSince} days ago`}
       </p>
     </div>

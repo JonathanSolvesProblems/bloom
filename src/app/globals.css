@@ -37,11 +37,16 @@
   --ink-soft: #56524a;
   --rule: #cec7b0;
 
-  /* The only marks anyone ever made in the book. */
+  /* Two inks, and they are the whole story: a thing is either growing or it is
+     not. Green is alive, on rhythm, come back. Pink is the bloom that is about to
+     drop. Nothing else on the site is allowed either colour, which is why a pink
+     stem means something the instant you see one. */
+  --leaf: #1d7a45;
+  --leaf-bright: #23a15a;
   --pencil: #ff2d6f;
   --pencil-strong: #d1004b;
-  --stamp: #0f6fc5;
-  --ballpoint: #0f6fc5;
+  --stamp: #1d7a45;
+  --ballpoint: #1d7a45;
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -100,10 +105,12 @@
   --ink-soft: #9c968a;
   --rule: #34322a;
 
+  --leaf: #35c47b;
+  --leaf-bright: #4ee09a;
   --pencil: #ff3d7a;
   --pencil-strong: #ff6b98;
-  --stamp: #4da3f0;
-  --ballpoint: #4da3f0;
+  --stamp: #35c47b;
+  --ballpoint: #35c47b;
 
   --glass: rgba(31, 28, 24, 0.86);
   --glass-border: var(--rule);
@@ -152,6 +159,8 @@
   --color-rule: var(--rule);
   --color-pencil: var(--pencil);
   --color-pencil-strong: var(--pencil-strong);
+  --color-leaf: var(--leaf);
+  --color-leaf-bright: var(--leaf-bright);
   --color-stamp: var(--stamp);
   --color-ballpoint: var(--ballpoint);
   --color-primary-fg: var(--primary-fg);
@@ -389,11 +398,35 @@ h1, h2, h3 {
   to { stroke-dashoffset: 0; }
 }
 
-/* A visit, inked onto the line. Lands slightly heavy then settles, like a nib. */
-@keyframes inkTick {
-  0% { opacity: 0; transform: scaleY(0.2); }
-  70% { opacity: 1; transform: scaleY(1.25); }
-  100% { opacity: 1; transform: scaleY(1); }
+/* A visit. It opens: nothing, then a bud, then slightly past full, then settles.
+   A flower does not fade in, and the overshoot is what stops this reading as a
+   generic scale-up. */
+@keyframes bloomOpen {
+  0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+  65% { opacity: 1; transform: scale(1.22) rotate(6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* A petal coming off a client who is leaving.
+   This is the only "particle" on the site and it is not decoration: one petal
+   falls per client who is drifting, from the exact row they are on, and the
+   drift sideways plus the tumble is what makes it read as loss rather than as
+   ambience. Nothing floats upward, nothing sparkles, and no petal ever falls
+   from a row that is fine. */
+@keyframes petalFall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  12% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--drift), 46px) rotate(var(--spin)); }
+}
+.petal-fall {
+  animation: petalFall var(--fall-dur) cubic-bezier(0.35, 0.1, 0.6, 1) var(--fall-delay) infinite;
+}
+
+/* The stem going bare behind them: it draws from the last bloom to today, so you
+   watch the gap open rather than find it already there. */
+@keyframes stemWilt {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 /* BOOKED, hit with a rubber stamp: too big, rotated, then bites down. */
@@ -479,4 +512,6 @@ h1, h2, h3 {
      the path invisible, so show it complete. */
   .circle-mark path { stroke-dashoffset: 0; }
   .stamp-mark { opacity: 1; transform: rotate(-9deg) scale(1); }
+  /* Falling petals are motion for its own sake to someone who asked for none. */
+  .petal-fall { display: none; }
 }
