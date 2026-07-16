@@ -4,7 +4,9 @@ import { db } from '@/lib/db'
 import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel } from '@/lib/retention'
 import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
-import { ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper } from 'lucide-react'
+import {
+  ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
+} from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,10 +29,22 @@ export default async function ClientRadarPage({
     import_error?: string
     sent?: string
     recovered?: string
+    needs_plan?: string
+    drafted?: string
+    subject?: string
   }>
 }) {
   const { businessId } = await params
-  const { t, imported, import_error: importError, sent, recovered } = await searchParams
+  const {
+    t,
+    imported,
+    import_error: importError,
+    sent,
+    recovered,
+    needs_plan: needsPlan,
+    drafted,
+    subject,
+  } = await searchParams
 
   const business = await db.business.findUnique({
     where: { id: businessId },
@@ -45,6 +59,7 @@ export default async function ClientRadarPage({
   const assessed = assessAll(business.clients)
   const s = summarize(assessed)
   const dash = `/dashboard/${businessId}?t=${encodeURIComponent(t)}`
+  const isActive = business.subscriptionStatus === 'active'
 
   // Everyone worth acting on, most valuable save first.
   const actionable = assessed.filter((c) => ['critical', 'at_risk'].includes(c.assessment.level))
@@ -109,10 +124,59 @@ export default async function ClientRadarPage({
           </div>
         )}
 
+        {drafted && (
+          <div className="bg-card border border-border rounded-xl p-5 text-sm">
+            <div className="flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-brand-teal-text shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground">I wrote to {drafted}, but held the send.</p>
+                {subject && (
+                  <p className="text-muted mt-2">
+                    Subject: <span className="text-foreground font-medium">{subject}</span>
+                  </p>
+                )}
+                <p className="text-muted mt-2 leading-relaxed">
+                  That is a sample client with a reserved test address, so the email would bounce and count against the
+                  sending domain every real business here shares. The full note is in your activity feed. Upload your
+                  own booking history and it sends for real.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {needsPlan && (
+          <div className="bg-accent-coral/[0.08] border border-accent-coral/30 rounded-xl p-4 text-sm text-foreground">
+            Reaching out is part of a paid plan. Finding who is slipping is always free.
+          </div>
+        )}
+
         {business.clients.length === 0 ? (
           <EmptyState businessId={businessId} token={t} />
         ) : (
           <>
+            {!isActive && s.critical + s.atRisk > 0 && (
+              // The honest pitch: the number above is what leaving is costing, and
+              // it is their own data saying so, not a projection.
+              <div className="rounded-xl border border-border bg-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <Lock className="w-5 h-5 text-brand-teal-text shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">
+                    I can write to all {s.critical + s.atRisk} of them, personally.
+                  </p>
+                  <p className="text-sm text-muted mt-1">
+                    One note per client, in your voice, about their last visit and their own timing. Saving one client
+                    covers the plan for a year. You are looking at ${s.revenueAtRisk.toLocaleString()} of them.
+                  </p>
+                </div>
+                <Link
+                  href={`/api/checkout?businessId=${businessId}&plan=starter`}
+                  className="btn-primary text-sm py-2 px-4 shrink-0"
+                >
+                  Start from $49/mo <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
             {/* The money. This is the whole point of the screen. */}
             <section className="grid sm:grid-cols-3 gap-4">
               <div className="card bg-card">
@@ -161,7 +225,7 @@ export default async function ClientRadarPage({
                 </p>
                 <div className="space-y-3">
                   {actionable.map((c) => (
-                    <ClientRow key={c.email} client={c} businessId={businessId} token={t} />
+                    <ClientRow key={c.email} client={c} businessId={businessId} token={t} isActive={isActive} />
                   ))}
                 </div>
               </section>
@@ -208,10 +272,12 @@ function ClientRow({
   client,
   businessId,
   token,
+  isActive,
 }: {
   client: ReturnType<typeof assessAll>[number]
   businessId: string
   token: string
+  isActive: boolean
 }) {
   const a = client.assessment
   const style = RISK_STYLE[a.level]
@@ -270,6 +336,11 @@ function ClientRow({
             </span>
           ) : client.winBackSentAt ? (
             <span className="text-xs text-muted whitespace-nowrap px-3">Reached out, waiting</span>
+          ) : !isActive ? (
+            // Do not render a button that is going to bounce. Say what it costs.
+            <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-outline text-sm py-2 px-4 whitespace-nowrap">
+              <Lock className="w-3.5 h-3.5" /> Unlock from $49
+            </Link>
           ) : (
             <form action={`/api/clients/winback?businessId=${businessId}&t=${encodeURIComponent(token)}`} method="post">
               <input type="hidden" name="email" value={client.email} />

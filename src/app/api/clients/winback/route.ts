@@ -6,8 +6,21 @@ import { assess, businessCadence } from '@/lib/retention'
 import { brandEmail } from '@/lib/email-template'
 import { publicBaseUrl } from '@/lib/config'
 import { appBaseUrl } from '@/lib/agent-run'
+import { allowForKey, underGlobalCap, LIMITS, GLOBAL_LIMITS } from '@/lib/ratelimit'
 
 export const maxDuration = 60
+
+/**
+ * Addresses that can never receive mail: the IANA reserved domains (RFC 2606,
+ * RFC 6761) plus the obvious local ones. The sample booking history is built from
+ * these on purpose, so anyone can try the radar with fake people.
+ *
+ * Sending to them would hard bounce. Bounces are scored against the SENDING
+ * domain, which every customer shares, so a handful of curious testers clicking
+ * "win them back" on sample data could get real businesses' newsletters
+ * throttled. The agent drafts for these and stops short of the send.
+ */
+const UNDELIVERABLE = /@(example\.(com|org|net)|test|invalid|localhost)$/i
 
 /**
  * Win one specific client back: the agent reads their real history, writes them a
@@ -28,6 +41,14 @@ export async function POST(request: NextRequest) {
 
   const origin = publicBaseUrl(request)
   const back = (p: string) => `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}`
+
+  // Seeing who is slipping is free, because that is the hook and it costs nothing
+  // to show. Acting on it spends a Gemini call and an email from a shared sending
+  // domain, so it is what the subscription buys. This is also what stops a free
+  // signup importing 5,000 clients and writing to all of them on my bill.
+  if (business.subscriptionStatus !== 'active') {
+    return Response.redirect(back('needs_plan=1'), 303)
+  }
 
   const client = business.clients.find((c) => c.email === email)
   if (!client) return Response.redirect(back('import_error=Client%20not%20found'), 303)
@@ -50,6 +71,21 @@ export async function POST(request: NextRequest) {
   }
   const base = appBaseUrl()
   if (!base) return Response.redirect(back('import_error=No%20app%20URL%20configured'), 303)
+
+  // Checked here, not earlier: bailing out for an unsubscribe or a duplicate
+  // costs nothing, so it must not burn a day's allowance.
+  if (!(await allowForKey('winback', businessId, LIMITS.winback))) {
+    return Response.redirect(
+      back(`import_error=${encodeURIComponent(`That is ${LIMITS.winback} win-backs today, which is my daily limit. The rest will still be here tomorrow.`)}`),
+      303
+    )
+  }
+  if (!(await underGlobalCap('winback', GLOBAL_LIMITS.winback))) {
+    return Response.redirect(
+      back('import_error=Sending%20is%20paused%20for%20today.%20Nothing%20is%20lost%2C%20try%20again%20tomorrow.'),
+      303
+    )
+  }
 
   const a = assess(client, businessCadence(business.clients))
 
@@ -86,6 +122,34 @@ export async function POST(request: NextRequest) {
     data: { winBackSentAt: new Date() },
   })
   if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
+
+  // Sample data: draft it, show the owner what the agent wrote, but do not put a
+  // guaranteed bounce through the shared sending domain. The claim above still
+  // stands, so the rest of the flow (including a later recovery) behaves normally.
+  if (UNDELIVERABLE.test(client.email)) {
+    await db.agentLog.create({
+      data: {
+        businessId,
+        action: 'winback_drafted',
+        summary: `Wrote to ${client.name} but held the send: ${client.email} is a reserved test address. ${a.reason}`.slice(0, 200),
+        details: JSON.stringify({
+          risk: a.level,
+          daysSince: a.daysSince,
+          annualValue: a.annualValue,
+          subject: draft.subject,
+          body: draft.body,
+          reasoning: draft.reasoning,
+          model: draft.model,
+          tokensUsed: draft.tokensUsed,
+          sent: false,
+        }),
+      },
+    })
+    return Response.redirect(
+      back(`drafted=${encodeURIComponent(client.name)}&subject=${encodeURIComponent(draft.subject)}`),
+      303
+    )
+  }
 
   const unsubUrl = `${base}/api/unsubscribe?c=${client.id}`
   const html = `${brandEmail(draft.body, {

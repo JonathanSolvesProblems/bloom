@@ -65,6 +65,30 @@ export async function allowRequest(request: NextRequest, bucket: string, perDayC
 }
 
 /**
+ * Per-day cap keyed on something other than the caller's IP, for work that is
+ * already authenticated and so belongs to an account rather than an address.
+ * A win-back is owner-token gated, so the IP is the wrong unit: the owner may be
+ * on a phone and a laptop, and rotating IPs must not buy more sends.
+ *
+ * Fails OPEN like the others, since a database hiccup must not block a paying
+ * customer. The tier gate is the real guard; this only bounds the blast radius.
+ */
+export async function allowForKey(bucket: string, id: string, perDayCap: number): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10)
+  const key = `${bucket}:${id}:${day}`
+  try {
+    const rl = await db.rateLimit.upsert({
+      where: { key },
+      create: { key, count: 1 },
+      update: { count: { increment: 1 } },
+    })
+    return rl.count <= perDayCap
+  } catch {
+    return true
+  }
+}
+
+/**
  * A GLOBAL, per-day ceiling across all callers, so a distributed attack from many
  * IPs (each under the per-IP cap) still cannot run up the Gemini bill. This is the
  * absolute cap on free-preview spend for a day; paid generations do not use it.
@@ -102,6 +126,10 @@ export async function pruneRateLimits(): Promise<number> {
 export const LIMITS = {
   generate: 25,
   business: 25,
+  // Per business, per day. A real salon works a handful of saves a day, so this
+  // is far above honest use while stopping a paying account from scripting a
+  // send to its entire book (both a Gemini bill and a spam complaint).
+  winback: Number(process.env.WINBACK_DAILY_CAP) || 50,
 }
 
 // Absolute daily ceiling on FREE previews across everyone. At roughly $0.01 of
@@ -110,4 +138,9 @@ export const LIMITS = {
 // tighter ceiling while testing.
 export const GLOBAL_LIMITS = {
   generate: Number(process.env.FREE_PREVIEW_DAILY_CAP) || 500,
+  // Win-backs are paid-only, so this is not an abuse ceiling but a blast-radius
+  // one: it is the most email Bloom can send in a day no matter what goes wrong
+  // (a bug, a loop, a compromised token), which matters when the sending domain's
+  // reputation is shared by every customer.
+  winback: Number(process.env.WINBACK_GLOBAL_DAILY_CAP) || 500,
 }

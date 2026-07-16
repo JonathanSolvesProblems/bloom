@@ -54,14 +54,20 @@ export async function POST(request: NextRequest) {
   // the only number here that is measured rather than estimated.
   const cameBackNames: string[] = []
 
+  // Read the whole existing book once. Asking the database per client would be
+  // thousands of sequential round-trips to Neon, and a shop with a real client
+  // list would blow the 60s limit before it saw a single result.
+  const prior = await db.client.findMany({
+    where: { businessId },
+    select: { email: true, visitCount: true, winBackSentAt: true, recoveredAt: true },
+  })
+  const priorByEmail = new Map(prior.map((p) => [p.email, p]))
+
   // Upsert so re-importing a fresh export updates the book rather than duplicating
   // it. A client who booked again since the last import gets a new lastVisitAt and
   // visitCount, which is exactly how a win-back gets marked as recovered below.
-  for (const c of clients) {
-    const existing = await db.client.findUnique({
-      where: { businessId_email: { businessId, email: c.email } },
-      select: { id: true, visitCount: true, winBackSentAt: true, recoveredAt: true },
-    })
+  const writes = clients.map((c) => {
+    const existing = priorByEmail.get(c.email)
 
     // Recovery is MEASURED, not claimed: they were sent a win-back, and now the
     // fresh export shows a visit they did not have before.
@@ -69,7 +75,7 @@ export async function POST(request: NextRequest) {
       !!existing && !!existing.winBackSentAt && !existing.recoveredAt && c.visitCount > existing.visitCount
     if (cameBack) cameBackNames.push(c.name)
 
-    await db.client.upsert({
+    return db.client.upsert({
       where: { businessId_email: { businessId, email: c.email } },
       create: {
         businessId,
@@ -93,6 +99,13 @@ export async function POST(request: NextRequest) {
         ...(cameBack ? { recoveredAt: new Date() } : {}),
       },
     })
+  })
+
+  // Batched rather than all at once: 5,000 concurrent upserts would exhaust the
+  // connection pool, and Neon would start refusing them.
+  const BATCH = 25
+  for (let i = 0; i < writes.length; i += BATCH) {
+    await Promise.all(writes.slice(i, i + BATCH))
   }
 
   const stored = await db.client.findMany({ where: { businessId } })
