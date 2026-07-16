@@ -1,20 +1,29 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Sparkles, CheckCircle2, CalendarClock } from 'lucide-react'
+import { Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react'
 
+/**
+ * The hero visual has to show the thing the headline promises. It used to type out
+ * Instagram captions, which was the old product and read as a contradiction next
+ * to "the clients you are about to lose".
+ *
+ * So it shows one save, end to end: the verdict, the note, the result. The middle
+ * line is real output from the model, kept verbatim rather than polished, because
+ * the whole claim is that this is what an owner would actually send.
+ */
 const LINES = [
   {
-    label: 'Instagram caption',
-    text: "Rainy Monday? We've got you. All lattes are $1 off until noon, the cozy corner is open, and today's playlist is pure jazz. Bring someone who needs a slow morning.",
+    label: 'What I noticed',
+    text: 'Jane comes in about every 28 days. It has been 44. She is not on holiday, she is drifting, and at $1,295 a year she is worth a two-line email.',
   },
   {
-    label: 'Newsletter subject line',
-    text: 'Your week just got 90 minutes lighter',
+    label: 'What I wrote her',
+    text: 'Hi Jane, I was thinking about your last cut and colour and how well it turned out. If you are due a refresh, I would love to get you back in the chair. Wildflower Studio',
   },
   {
-    label: 'Google Business post',
-    text: 'New autumn menu is live: maple oat latte, pumpkin loaf, and a $6 soup-and-coffee combo. Open until 6pm all week. Come warm up.',
+    label: 'What happened',
+    text: 'Jane booked for Thursday. That is one client, $1,295 a year, who was quietly on her way out the door.',
   },
 ]
 
@@ -49,6 +58,8 @@ export default function AgentHeroCard() {
   const line = LINES[lineIdx]
   const typed = line.text.slice(0, chars)
   const complete = chars >= line.text.length
+  const isVerdict = lineIdx === 0
+  const isResult = lineIdx === 2
 
   return (
     <div className="glass relative rounded-2xl shadow-xl p-5 sm:p-6">
@@ -63,12 +74,16 @@ export default function AgentHeroCard() {
             <span className="absolute inline-flex h-full w-full rounded-full bg-brand-emerald opacity-60 animate-ping" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-emerald" />
           </span>
-          Bloom agent · running
+          Bloom agent · watching
         </div>
       </div>
 
-      <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-brand-teal-text bg-brand-teal/10 px-2.5 py-1 rounded-full mb-3">
-        <Sparkles className="w-3 h-3" />
+      <div
+        className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full mb-3 ${
+          isVerdict ? 'text-red-500 bg-red-500/10' : 'text-brand-teal-text bg-brand-teal/10'
+        }`}
+      >
+        {isVerdict ? <AlertTriangle className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
         {line.label}
       </div>
 
@@ -78,18 +93,19 @@ export default function AgentHeroCard() {
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-        {complete ? (
+        {!complete ? (
+          <span className="inline-flex items-center gap-1.5 text-muted font-medium font-mono">Thinking…</span>
+        ) : isResult ? (
           <span className="inline-flex items-center gap-1.5 text-brand-emerald font-medium">
-            <CheckCircle2 className="w-4 h-4" /> Ready to publish
+            <CheckCircle2 className="w-4 h-4" /> Won back
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-muted font-medium font-mono">Writing…</span>
+          <span className="inline-flex items-center gap-1.5 text-brand-emerald font-medium">
+            <CheckCircle2 className="w-4 h-4" /> One client, one note
+          </span>
         )}
         <span className="text-border">·</span>
-        <span className="inline-flex items-center gap-1.5 text-muted font-mono">
-          <CalendarClock className="w-3.5 h-3.5" />
-          Newsletter queued · Monday 9:00am
-        </span>
+        <span className="inline-flex items-center gap-1.5 text-muted font-mono">28-day rhythm · 44 days out</span>
       </div>
 
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[11px] font-mono text-muted">

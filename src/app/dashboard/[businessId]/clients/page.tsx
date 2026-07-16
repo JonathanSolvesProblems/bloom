@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel } from '@/lib/retention'
+import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel, type Assessed, type ClientLike } from '@/lib/retention'
 import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
 import {
@@ -9,6 +9,12 @@ import {
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * The risk engine deliberately does not know who anyone is (see ClientLike), but
+ * this screen has to name them, so it carries the identity fields alongside.
+ */
+type RadarClient = Assessed<ClientLike & { name: string; email: string; lastService: string }>
 
 const RISK_STYLE: Record<RiskLevel, { label: string; dot: string; text: string; ring: string }> = {
   critical: { label: 'Slipping away', dot: 'bg-red-500', text: 'text-red-500', ring: 'ring-red-500/30' },
@@ -55,6 +61,23 @@ export default async function ClientRadarPage({
   // sensitive screen in the product, so require the owner-only token and 404
   // rather than 403 so it never confirms a business exists.
   if (!t || t !== business.dashboardToken) notFound()
+
+  // When a send was held back (a sample address), show the owner what the agent
+  // actually wrote. It is the whole point of the feature and was otherwise
+  // invisible: nothing else renders a drafted note.
+  const draftedLog = drafted
+    ? await db.agentLog.findFirst({
+        where: { businessId, action: 'winback_drafted' },
+        orderBy: { createdAt: 'desc' },
+        select: { details: true },
+      })
+    : null
+  let draftedNote: { subject?: string; body?: string; draftReasoning?: string } = {}
+  try {
+    if (draftedLog?.details) draftedNote = JSON.parse(draftedLog.details)
+  } catch {
+    /* a malformed log must not take the page down */
+  }
 
   const assessed = assessAll(business.clients)
   const s = summarize(assessed)
@@ -128,18 +151,32 @@ export default async function ClientRadarPage({
           <div className="bg-card border border-border rounded-xl p-5 text-sm">
             <div className="flex items-start gap-2.5">
               <Sparkles className="w-4 h-4 text-brand-teal-text shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="font-semibold text-foreground">I wrote to {drafted}, but held the send.</p>
-                {subject && (
-                  <p className="text-muted mt-2">
-                    Subject: <span className="text-foreground font-medium">{subject}</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground">Here is what I would have sent {drafted}.</p>
+                <p className="text-muted mt-1 leading-relaxed">
+                  I held the send because that is a sample client with a reserved test address. It would bounce, and
+                  bounces count against the sending domain every business here shares. Upload your own booking history
+                  and it goes out for real.
+                </p>
+
+                <div className="mt-4 rounded-lg border border-border bg-surface p-4">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">Subject</p>
+                  <p className="text-foreground font-medium mt-1">{draftedNote.subject ?? subject}</p>
+                  {draftedNote.body && (
+                    <div
+                      className="mt-3 pt-3 border-t border-border text-foreground leading-relaxed [&_p]:mb-2"
+                      // The model wrote this and it went through the same allowlist
+                      // sanitizer as the newsletter before it was stored.
+                      dangerouslySetInnerHTML={{ __html: draftedNote.body }}
+                    />
+                  )}
+                </div>
+
+                {draftedNote.draftReasoning && (
+                  <p className="text-xs text-muted mt-3 leading-relaxed">
+                    <span className="font-semibold">Why I wrote it that way:</span> {draftedNote.draftReasoning}
                   </p>
                 )}
-                <p className="text-muted mt-2 leading-relaxed">
-                  That is a sample client with a reserved test address, so the email would bounce and count against the
-                  sending domain every real business here shares. The full note is in your activity feed. Upload your
-                  own booking history and it sends for real.
-                </p>
               </div>
             </div>
           </div>
@@ -155,14 +192,16 @@ export default async function ClientRadarPage({
           <EmptyState businessId={businessId} token={t} />
         ) : (
           <>
-            {!isActive && s.critical + s.atRisk > 0 && (
+            {!isActive && s.contactable > 0 && (
               // The honest pitch: the number above is what leaving is costing, and
-              // it is their own data saying so, not a projection.
+              // it is their own data saying so, not a projection. The count is the
+              // CONTACTABLE one, never the at-risk one: promising to write to
+              // someone who opted out is a promise the agent refuses to keep.
               <div className="rounded-xl border border-border bg-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                 <Lock className="w-5 h-5 text-brand-teal-text shrink-0" />
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">
-                    I can write to all {s.critical + s.atRisk} of them, personally.
+                    I can write to {s.contactable === 1 ? 'them' : `all ${s.contactable} of them`}, personally.
                   </p>
                   <p className="text-sm text-muted mt-1">
                     One note per client, in your voice, about their last visit and their own timing. Saving one client
@@ -181,12 +220,14 @@ export default async function ClientRadarPage({
             <section className="grid sm:grid-cols-3 gap-4">
               <div className="card bg-card">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Slipping away
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Need attention
                 </div>
                 <div className="text-4xl font-bold text-foreground font-mono">
                   <CountUp to={s.critical + s.atRisk} />
                 </div>
-                <div className="text-sm text-muted mt-1">clients you are about to lose</div>
+                <div className="text-sm text-muted mt-1">
+                  {s.critical} slipping away, {s.atRisk} drifting
+                </div>
               </div>
               <div className="card bg-card ring-2 ring-red-500/20">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wide mb-2">
@@ -274,7 +315,7 @@ function ClientRow({
   token,
   isActive,
 }: {
-  client: ReturnType<typeof assessAll>[number]
+  client: RadarClient
   businessId: string
   token: string
   isActive: boolean
@@ -339,7 +380,7 @@ function ClientRow({
           ) : !isActive ? (
             // Do not render a button that is going to bounce. Say what it costs.
             <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-outline text-sm py-2 px-4 whitespace-nowrap">
-              <Lock className="w-3.5 h-3.5" /> Unlock from $49
+              <Lock className="w-3.5 h-3.5" /> Write to them, from $49
             </Link>
           ) : (
             <form action={`/api/clients/winback?businessId=${businessId}&t=${encodeURIComponent(token)}`} method="post">

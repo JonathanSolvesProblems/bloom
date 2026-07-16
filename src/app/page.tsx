@@ -34,7 +34,7 @@ import { SUPPORT_EMAIL } from '@/lib/config'
 // Industry retention figures, used to frame the problem honestly instead of
 // projecting Bloom's own output as a benefit.
 const painStats = [
-  { to: 40, suffix: '%', label: 'of new clients are gone within a year, the biggest profit leak most shops have' },
+  { to: 40, suffix: '%', label: 'of new clients are gone within a year' },
   { to: 20, suffix: '%', label: 'chance a first-timer ever comes back once 30 days pass with no rebooking' },
   { to: 1200, prefix: '$', suffix: '+', label: 'a year is what one regular client is worth, so each save is real money' },
 ]
@@ -185,7 +185,8 @@ export default function HomePage() {
               ))}
             </div>
             <p className="text-center text-xs text-muted mt-10">
-              Source: 2026 small-business marketing surveys (LocaliQ, TriNet, industry aggregates).
+              Source: salon, spa and medspa client-retention research (Jeri Commerce retention statistics, Zoca
+              lapsed-client analysis, Simple Salon churn data).
             </p>
           </div>
         </section>
@@ -244,11 +245,13 @@ export default function HomePage() {
                   </span>
                   Live agent operations
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">AI that runs your marketing, not just suggests it.</h2>
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+                  It does not just flag who is leaving. It writes to them.
+                </h2>
                 <p className="text-muted mt-4 leading-relaxed">
-                  A scheduled agent fires every Monday with no human in the loop. It picks the angle, writes the week,
-                  scores its own draft, and on Pro sends the newsletter. The trace below is an illustrative example. The
-                  live feed shows the real runs.
+                  Every action is recorded: who it judged at risk and why, what it wrote, and whether they came back. A
+                  scheduled agent also writes your week every Monday with no human in the loop. The trace below is an
+                  illustrative example. The live feed shows the real runs.
                 </p>
                 <Link
                   href="/agent"
@@ -393,9 +396,10 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto text-center">
             <Reveal>
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Simple pricing</h2>
-              <p className="text-muted mt-3 mb-4">Pick who does the sending. Cancel anytime.</p>
+              <p className="text-muted mt-3 mb-4">Cancel anytime.</p>
               <p className="text-sm text-muted mb-12 max-w-lg mx-auto">
-                Starter writes your week and hands it to you. Pro also emails it, so Monday happens without you.
+                Finding who is slipping is always free. Both paid plans write to them. The difference between Starter
+                and Pro is only who sends your Monday newsletter.
               </p>
             </Reveal>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto text-left items-stretch">
@@ -403,9 +407,14 @@ export default function HomePage() {
                 <div className="card h-full flex flex-col">
                   <div className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Preview</div>
                   <div className="text-4xl font-bold text-foreground mb-1">Free</div>
-                  <p className="text-sm text-muted mb-6">See your AI-generated content before you commit.</p>
+                  <p className="text-sm text-muted mb-6">See what you are losing before you commit.</p>
                   <ul className="space-y-2.5 text-sm text-foreground/80 mb-6">
-                    {['One real week of content for your business', '3 social posts + a newsletter draft', 'No credit card required'].map(
+                    {[
+                      'Every client scored against their own rhythm',
+                      'What each one is worth a year, and who is slipping',
+                      'One real week of content for your business',
+                      'No credit card required',
+                    ].map(
                       (f) => (
                         <li key={f} className="flex items-start gap-2">
                           <CheckCircle2 className="w-4 h-4 text-brand-emerald mt-0.5 shrink-0" /> {f}
@@ -425,13 +434,14 @@ export default function HomePage() {
                   <div className="text-4xl font-bold text-foreground mb-1">
                     $49 <span className="text-lg font-normal text-muted">/month</span>
                   </div>
-                  <p className="text-sm text-muted mb-6">Your week, written. You press publish.</p>
+                  <p className="text-sm text-muted mb-6">Write to the clients you are about to lose.</p>
                   <ul className="space-y-2.5 text-sm text-foreground/80 mb-6">
                     {[
+                      'A personal win-back note to every client who is slipping',
+                      'Saving one client pays for the year',
                       '3 social posts written every week',
                       'A newsletter drafted and ready to paste',
                       'Full agent activity dashboard',
-                      'Update promotions anytime',
                       'Cancel anytime',
                     ].map((f) => (
                       <li key={f} className="flex items-start gap-2">
@@ -506,11 +516,13 @@ export default function HomePage() {
           <div className="aurora" />
           <div className="relative z-10 max-w-2xl mx-auto text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              See a week of your marketing, written in under a minute.
+              Find out who you are about to lose, in under a minute.
             </h2>
-            <p className="text-muted mt-4 mb-8">No account, no credit card. Just your business info.</p>
+            <p className="text-muted mt-4 mb-8">
+              No account, no credit card, and no booking export needed to try it.
+            </p>
             <Link href="/setup" className="btn-primary text-base py-3 px-10">
-              Preview my content free
+              Show me who is slipping
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -523,7 +535,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-brand-teal" />
               <span className="font-display font-semibold text-foreground">Bloom</span>
-              <span className="text-muted">· AI marketing for local businesses</span>
+              <span className="text-muted">· AI retention agent for local businesses</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
               <Link href="/setup" className="hover:text-foreground transition-colors">

@@ -164,12 +164,16 @@ export async function POST(request: NextRequest) {
     // Worth its own entry in the feed: a save is the only thing here the agent
     // can be judged on, and it is proven by the owner's own fresh export.
     const value = recovered.reduce((sum, a) => sum + a.assessment.annualValue, 0)
-    const names = recovered.map((a) => a.name)
     await db.agentLog.create({
       data: {
         businessId,
         action: 'client_recovered',
-        summary: `${names.join(', ')} booked again after I reached out. About $${value.toLocaleString()} a year saved.`.slice(0, 200),
+        // Public feed. Names and the recovered amount belong to the business, so
+        // this says what happened without saying who or how much.
+        summary:
+          recovered.length === 1
+            ? 'A client I wrote to has booked again. The save is confirmed by the owner\'s own booking export.'
+            : `${recovered.length} clients I wrote to have booked again, confirmed by the owner's own booking export.`,
         details: JSON.stringify({ clients: recovered.map((a) => a.email), annualValue: value }),
       },
     })

@@ -138,14 +138,19 @@ export async function POST(request: NextRequest) {
       data: {
         businessId,
         action: 'winback_drafted',
-        summary: `Wrote to ${client.name} but held the send: ${client.email} is a reserved test address. ${a.reason}`.slice(0, 200),
+        // No client name or address in the summary: summaries are rendered in more
+        // than one place, and a log line is the wrong home for someone else's
+        // customer's personal data.
+        summary: `Wrote to a sample client but held the send, the address is a reserved test one. ${a.reason}`.slice(0, 200),
         details: JSON.stringify({
           risk: a.level,
           daysSince: a.daysSince,
           annualValue: a.annualValue,
           subject: draft.subject,
           body: draft.body,
-          reasoning: draft.reasoning,
+          // Not `reasoning`: that key is rendered generically by the public feed,
+          // and this text is written about a named client.
+          draftReasoning: draft.reasoning,
           model: draft.model,
           tokensUsed: draft.tokensUsed,
           sent: false,
@@ -194,14 +199,17 @@ export async function POST(request: NextRequest) {
     data: {
       businessId,
       action: 'winback_sent',
-      summary: `Reached out to a ${a.level === 'critical' ? 'client slipping away' : 'drifting client'} worth about $${a.annualValue.toLocaleString()} a year. ${a.reason}`.slice(0, 200),
+      // This one IS shown on the public feed, so it describes the client by their
+      // situation and never by name, address, or what they are worth.
+      summary: `Wrote a personal note to a ${a.level === 'critical' ? 'client slipping away' : 'drifting client'}. ${a.reason}`.slice(0, 200),
       details: JSON.stringify({
         risk: a.level,
         daysSince: a.daysSince,
         daysToCliff: a.daysToCliff,
         annualValue: a.annualValue,
         subject: draft.subject,
-        reasoning: draft.reasoning,
+        // See the note above: not `reasoning`, it names the client.
+        draftReasoning: draft.reasoning,
         model: draft.model,
         tokensUsed: draft.tokensUsed,
       }),

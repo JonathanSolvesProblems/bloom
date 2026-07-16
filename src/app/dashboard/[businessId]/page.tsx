@@ -53,7 +53,22 @@ export default async function DashboardPage({
       weeklyContent: { orderBy: { createdAt: 'desc' }, take: 10 },
       agentLogs: { orderBy: { createdAt: 'desc' }, take: 20 },
       subscribers: { orderBy: { createdAt: 'desc' } },
-      clients: true,
+      // Only what the risk maths needs. This page renders four summary numbers and
+      // never a single client, so pulling names and email addresses for a whole
+      // book (up to 5,000 of them) would be moving a business's customer list over
+      // the wire on every dashboard load for nothing.
+      clients: {
+        select: {
+          lastVisitAt: true,
+          firstVisitAt: true,
+          visitCount: true,
+          avgSpend: true,
+          cadenceDays: true,
+          winBackSentAt: true,
+          unsubscribedAt: true,
+          recoveredAt: true,
+        },
+      },
     },
   })
 
@@ -64,6 +79,12 @@ export default async function DashboardPage({
   // Require the owner-only token, and 404 rather than 403 so the route never
   // confirms that a given business exists.
   if (!t || t !== business.dashboardToken) notFound()
+
+  // Counted, not measured off the 20 rows fetched for the feed above. A business
+  // used to log about 3 actions a week, so the cap took two months to reach and
+  // the bug hid; a single day on the radar can log 50, and the stat would have
+  // frozen at "20" forever.
+  const totalActions = await db.agentLog.count({ where: { businessId } })
 
   const latestContent = business.weeklyContent[0]
   const isActive = business.subscriptionStatus === 'active'
@@ -263,7 +284,7 @@ export default async function DashboardPage({
             { label: 'Newsletters sent', value: business.weeklyContent.filter((c: { newsletterSent: boolean }) => c.newsletterSent).length, icon: <Mail className="w-5 h-5 text-emerald-600" /> },
             { label: 'Subscribers', value: subscriberCount, icon: <Users className="w-5 h-5 text-emerald-600" /> },
             { label: 'Weeks of content', value: business.weeklyContent.length, icon: <CalendarClock className="w-5 h-5 text-emerald-600" /> },
-            { label: 'AI actions logged', value: business.agentLogs.length, icon: <TrendingUp className="w-5 h-5 text-emerald-600" /> },
+            { label: 'AI actions logged', value: totalActions, icon: <TrendingUp className="w-5 h-5 text-emerald-600" /> },
           ].map(({ label, value, icon }) => (
             <div key={label} className="card bg-card flex items-center gap-3">
               {icon}
@@ -476,7 +497,7 @@ function BrandingCard({
     <div className="card bg-card">
       <h2 className="font-semibold text-foreground mb-2">Newsletter branding</h2>
       <p className="text-sm text-muted mb-4">
-        Put your logo and color in the header of every newsletter, so it looks like yours, not ours. This applies to
+        Put your logo and color in the header of every newsletter, so it looks like it came from you. This applies to
         your emailed newsletter and the preview.
       </p>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
-import { Sparkles, Copy, Check, ArrowRight, Loader2, Mail, ExternalLink } from 'lucide-react'
+import { Sparkles, Copy, Check, ArrowRight, Loader2, Mail, ExternalLink, Radar } from 'lucide-react'
 
 type Content = {
   post1: string
@@ -162,12 +162,37 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               </div>
             </div>
 
+            {/* The promise on the landing page was "show me who is slipping", and
+                setup delivers a content preview. Close that loop here: the radar is
+                free, and it is the reason they came. */}
+            {dashToken && (
+              <div className="rounded-xl border border-border bg-card p-6 sm:p-8 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                  <Radar className="w-6 h-6 text-brand-teal-text shrink-0" />
+                  <div className="flex-1">
+                    <h2 className="text-lg font-bold text-foreground">Now the part that pays for itself</h2>
+                    <p className="text-sm text-muted mt-1.5 leading-relaxed">
+                      Upload your booking history and I will show you which clients are slipping away from their own
+                      rhythm, and what each of them is worth a year. It is free to look, and you do not need an export
+                      handy to try it.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/dashboard/${businessId}/clients?t=${dashToken}`}
+                    className="btn-primary text-sm py-2.5 px-5 shrink-0"
+                  >
+                    Show me who is slipping <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Upgrade CTA */}
             <div className="bg-emerald-600 rounded-xl p-8 text-center text-white">
-              <h2 className="text-2xl font-bold mb-2">This is what Bloom delivers every single week</h2>
+              <h2 className="text-2xl font-bold mb-2">This is your week, every Monday</h2>
               <p className="text-emerald-100 mb-6 max-w-md mx-auto">
-                Keep it coming every Monday. Starter writes your week for you to publish. Pro also emails the newsletter
-                to your subscribers, without you lifting a finger.
+                Starter writes your week for you to publish. Pro also emails the newsletter to your subscribers. Both
+                let me write to the clients you are about to lose, which is the part that pays for itself.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link

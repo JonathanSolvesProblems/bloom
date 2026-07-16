@@ -9,9 +9,9 @@ const instrument = Instrument_Serif({ weight: '400', style: 'italic', subsets: [
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
-  title: 'Bloom: AI Marketing for Local Businesses',
+  title: 'Bloom: the clients you are about to lose, before you lose them',
   description:
-    'Bloom is an AI marketing agent for local businesses. It writes your weekly newsletter and social posts, emails the newsletter to your subscribers automatically, and hands you ready-to-paste captions.',
+    'Nobody cancels, they just quietly stop coming. Bloom reads your booking history, works out who is slipping against their own rhythm, and writes each one a personal note in your voice. Upload a CSV from whatever you already use.',
 }
 
 // Belt-and-suspenders for the first visit (no cookie yet): runs in <head> before

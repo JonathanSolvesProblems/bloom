@@ -17,13 +17,15 @@
 
 export type RiskLevel = 'critical' | 'at_risk' | 'watch' | 'safe' | 'lost'
 
+/**
+ * Only what the risk maths actually reads. Names, emails and services are
+ * deliberately NOT here: the engine has no business knowing who someone is to
+ * decide whether they are lapsing, and leaving them out means callers who only
+ * need the numbers can avoid loading a business's customer list at all.
+ */
 export type ClientLike = {
-  name: string
-  email: string
-  firstVisitAt: Date
   lastVisitAt: Date
   visitCount: number
-  lastService: string
   avgSpend: number
   cadenceDays: number | null
   winBackSentAt?: Date | null
@@ -198,14 +200,22 @@ export type Summary = {
   lost: number
   /** Yearly revenue attached to everyone currently slipping (critical + at_risk). */
   revenueAtRisk: number
+  /**
+   * At-risk clients the agent would actually write to: not opted out, not already
+   * contacted. The at-risk count itself must not exclude those people (the
+   * business is still losing them, and the owner should see that), but any promise
+   * to write to "all of them" has to count only the ones it can keep.
+   */
+  contactable: number
   /** Yearly revenue attached to clients who came back after a win-back. */
   revenueRecovered: number
   recoveredCount: number
 }
 
-export type Assessed = ClientLike & { assessment: Assessment }
+/** Generic so a caller that passes full client rows gets them back intact. */
+export type Assessed<T extends ClientLike = ClientLike> = T & { assessment: Assessment }
 
-export function assessAll(clients: ClientLike[], now: Date = new Date()): Assessed[] {
+export function assessAll<T extends ClientLike>(clients: T[], now: Date = new Date()): Assessed<T>[] {
   const fallback = businessCadence(clients)
   return clients
     .map((c) => ({ ...c, assessment: assess(c, fallback, now) }))
@@ -220,11 +230,15 @@ export function summarize(assessed: Assessed[]): Summary {
     safe: 0,
     lost: 0,
     revenueAtRisk: 0,
+    contactable: 0,
     revenueRecovered: 0,
     recoveredCount: 0,
   }
   for (const c of assessed) {
     const { level, annualValue: v } = c.assessment
+    if (level === 'critical' || level === 'at_risk') {
+      if (!c.unsubscribedAt && !c.winBackSentAt) s.contactable++
+    }
     if (level === 'critical') {
       s.critical++
       s.revenueAtRisk += v

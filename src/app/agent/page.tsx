@@ -24,7 +24,28 @@ const ACTION_STYLES: Record<string, { label: string; cls: string }> = {
   delivery_skipped: { label: 'hold', cls: 'bg-white/10 text-white/60' },
   paused_delivery: { label: 'pause', cls: 'bg-accent-coral/15 text-accent-coral' },
   agent_error: { label: 'error', cls: 'bg-red-500/15 text-red-500' },
+  winback_sent: { label: 'win back', cls: 'bg-accent-coral/15 text-accent-coral' },
+  client_recovered: { label: 'saved', cls: 'bg-brand-emerald/15 text-brand-emerald' },
 }
+
+/**
+ * What this public page is allowed to show. An ALLOWLIST, not a blocklist: this
+ * feed is world-readable, and the agent now works over a business's real client
+ * book, so a new action type must be considered private customer data until
+ * someone has looked at it and decided otherwise. Failing open here would publish
+ * a salon's client list the first time a new action was logged.
+ *
+ * Deliberately excluded: `imported_clients` (client counts and revenue at risk are
+ * the business's own numbers) and `winback_drafted` (sample-address diagnostics).
+ */
+const PUBLIC_ACTIONS = Object.keys(ACTION_STYLES)
+
+/**
+ * Reasoning is free text from the model. On a win-back it is written ABOUT a named
+ * client ("I referenced Nina's balayage..."), so it can never go on this page. Only
+ * the content actions reason about the business itself.
+ */
+const REASONING_OK = new Set(['generated_content', 'decided_promotion', 'qa_review', 'qa_regenerated'])
 
 function fmt(d: Date): string {
   return new Date(d).toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
@@ -43,6 +64,7 @@ function nextMondayUTC(): string {
 export default async function AgentPage() {
   const [logs, totalActions, generatedCount, newsletterAgg, businessCount] = await Promise.all([
     db.agentLog.findMany({
+      where: { action: { in: PUBLIC_ACTIONS } },
       orderBy: { createdAt: 'desc' },
       take: 100,
       // Do NOT expose customer business names on this public page. Show only the
@@ -119,7 +141,8 @@ export default async function AgentPage() {
             } catch {
               /* ignore malformed details */
             }
-            const reasoning = typeof details.reasoning === 'string' ? details.reasoning : ''
+            const reasoning =
+              REASONING_OK.has(log.action) && typeof details.reasoning === 'string' ? details.reasoning : ''
             const meta = [
               details.model ? String(details.model) : '',
               typeof details.tokensUsed === 'number' ? `${details.tokensUsed.toLocaleString()} tokens` : '',
