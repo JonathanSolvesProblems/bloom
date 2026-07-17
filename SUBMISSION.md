@@ -7,6 +7,30 @@ in, so refresh them right before you submit.
 - **Live product:** https://bloom.jonathanandrei.com
 - **Repository:** https://github.com/JonathanSolvesProblems/bloom
 - **Category:** Small Business Services
+- **Closes:** August 17, 2026, 1:00 PM PT (judging Aug 18 to Sep 15, winners Sep 25)
+
+### What the official rules actually require (read this before anything else)
+
+Straight from https://www.geminixprize.com/rules, because two of these are harder
+than they look:
+
+1. **Business Viability is a third of the score, and it is defined as: "launch a
+   real business during the Hackathon, acquire real users, and generate real
+   revenue."** Revenue must be from THIRD-PARTY customers; related-party revenue
+   (my own test purchases) is disclosed separately and does not count. As of today
+   that number is zero, so a third of the score is currently near zero. No amount
+   of engineering or design fixes this. Only real salons do.
+2. **AI-Native Operations is another third: "AI executes key business decisions,
+   and how broadly AI governs the operation."** The win-back is owner-triggered, so
+   the autonomous weekly agent and the public `/agent` feed are what carry this
+   criterion. That is why the demo video keeps a beat on the feed.
+3. **Category Impact is the last third:** meaningful movement within the category
+   through "fundamental redefinition or credible scale."
+4. **Video pitch: under 3 minutes**, publicly visible, showing the product actually
+   running. Three minutes is a ceiling, not a target.
+5. **Evidence required:** "agent execution logs, API usage records, and screenshots
+   of dashboards" showing the system runs continuously in production. See
+   `docs/EVIDENCE.md`, and attach a Vertex AI usage screenshot before submitting.
 
 ---
 
@@ -15,20 +39,23 @@ in, so refresh them right before you submit.
 ### Project name (max 60 characters)
 
 ```
-Bloom: AI Marketing Agent for Local Businesses
+Bloom: the AI that catches the clients you're about to lose
 ```
+(58 characters.)
 
 ### Elevator pitch (max 200 characters)
 
 ```
-An AI agent that writes and sends your local business's weekly marketing every Monday, on its own, so you never skip a week. It picks the angle, writes the posts and newsletter, and delivers it.
+Nobody cancels, they just stop coming. Bloom reads your booking history, finds who is drifting from their own visit rhythm, and writes each one a personal note. One salon client is worth $1,200 a year.
 ```
-(197 characters.)
+(199 characters.)
 
 ### Thumbnail
 
-Use a 3:2 screenshot of the live agent feed at `/agent` or the dashboard content
-card. Both show the AI actually working, which is the point.
+Use a 3:2 crop of the client radar (`/dashboard/<id>/clients`) or the homepage
+book, showing Aisha and Jane side by side: both last seen 44 days ago, one green
+and one flagged. That single image is the entire argument, and it is the one
+thing in the project a judge cannot get anywhere else.
 
 ---
 
@@ -36,80 +63,195 @@ card. Both show the AI actually working, which is the point.
 
 ## Inspiration
 
-I kept meeting local business owners, a barber, a cafe owner, a personal trainer,
-who all had the same quiet failure: they knew marketing mattered, they started
-strong, and then they went silent. Not because they were bad at it, but because
-they ran out of time. The research backs this up: 56% of small businesses get an
-hour or less a day for marketing, 43% say they cannot keep their content
-consistent, and posting irregularly costs about 40% of your reach. When an owner
-goes quiet, momentum drains in weeks and takes months to rebuild. I wanted to
-build the thing that simply never skips a week, so consistency stops depending on
-whether the owner had a spare hour on Tuesday.
+I started out building an AI that writes marketing content, and I was wrong.
+Content is a commodity: any owner can get captions out of a chatbot in thirty
+seconds, so I was selling something free. What none of them could get was an
+answer to a harder question, and it was a question I only found by reading the
+retention research for salons and barbershops.
+
+Nobody cancels. They just quietly stop coming, and the owner finds out months
+later, if ever. About 40% of new clients are gone within a year. A first-timer
+who does not rebook within 30 days has roughly a one-in-five chance of ever
+returning, which makes days 7 to 30 after a first visit the highest-value moment
+in the entire business and the one nobody is watching. And a regular is worth
+$1,200 to $3,000 a year, so this is not a rounding error, it is the largest
+single profit leak most shops have.
+
+The reason nobody watches it is not laziness. It is that the answer is invisible:
+it is not in any report, it is the ABSENCE of a booking, spread across hundreds
+of clients who each have their own rhythm.
 
 ## What it does
 
-Bloom is an AI marketing agent for local businesses. An owner sets up their
-business once (type, city, brand voice, what to promote). Every Monday, a
-scheduled agent runs on its own: it decides the week's angle and promotion,
-writes three social posts and an email newsletter in the business's voice, scores
-its own draft and rewrites it if it falls below a quality bar, and then, on the
-Pro plan, emails the newsletter to the business's subscribers through a verified
-domain. Every action is recorded to a public activity feed so the owner can see
-exactly what the agent decided and why. The owner gets a dashboard, a public
-subscribe page to grow their list, and copy-ready social captions.
+Bloom finds the clients a business is about to lose, and writes to each one
+personally.
+
+The owner exports a CSV from whatever they already use (Fresha, Square, Vagaro,
+Booksy, even Google Calendar) and uploads it. Nothing to migrate, nothing to
+install. Bloom works out each client's own visit rhythm, the median gap between
+their real appointments, and measures them against themselves rather than against
+a generic rule. It then shows who is slipping and what each of them is worth a
+year. That part is free, because it costs nothing to show someone their own
+losses.
+
+Then the agent acts. For one specific client, it reads that person's real history
+(what they last had done, how often they normally come, how far past their own
+rhythm they are) and writes them a short note in the owner's brand voice, which
+Bloom sends from the business's verified domain. Never a blast: one message, one
+person, once. If they book again, the owner's next export proves it, and Bloom
+counts the save.
+
+**The single sentence:** it is your appointment book, but it reads itself.
 
 ## How I built it
 
-The product is a Next.js 16 (App Router) app on React 19 and TypeScript, styled
-with Tailwind. Content is generated by Google Gemini 2.5 Flash through Vertex AI,
-using a forced response schema so the output is always structured, plus a second
-Gemini call as a self-QA reviewer that gates and rewrites weak drafts. Data lives
-in Neon Postgres via Prisma. Stripe runs the Starter and Pro subscriptions and
-webhooks. Resend delivers the newsletters from a verified sending domain. The
-weekly agent is a dispatcher that fans out one worker per business so delivery
-scales past a single function's time budget, with an atomic claim so a newsletter
-can never be sent twice. It runs in production as a Dockerized standalone server
-behind Traefik, with a sidecar cron that fires the weekly run.
+The architecture is the idea, so it is worth being precise about the split.
+
+**Rules decide WHO. Gemini decides WHAT TO SAY.**
+
+The risk engine is deterministic, and deliberately so. It computes the median gap
+between a client's visits (the median, not the mean, because one six-month gap
+for an injury would drag a mean far enough to hide a real lapse), then scores
+them against their own cadence. It is exact, auditable, reproducible, and it
+never hallucinates: the same book always produces the same verdict, which matters
+when the output is "this person is worth $1,295 a year and she is leaving."
+
+Gemini does the part rules cannot: reason over one messy human history and write
+something a real person would send. That is a judgement call over unstructured
+context, which is exactly what an LLM is for and exactly what a threshold is not.
+
+The rest: Next.js 16, React 19, TypeScript, Tailwind. Gemini 2.5 Flash through
+Vertex AI with forced response schemas. Neon Postgres via Prisma. Stripe for
+subscriptions. Resend for delivery from a verified domain. Dockerized standalone
+server behind Traefik, with a sidecar cron for the weekly content run.
 
 ## Challenges I ran into
 
-The hardest problems were the invisible ones. Gemini would intermittently answer
-the self-QA prompt with a JSON array instead of an object, so the quality gate
-silently never fired until I forced a response schema. The newsletter send was a
-non-atomic read-then-set, so two workers could email a list twice, I fixed it
-with a single atomic claim. A background-work helper that works on one host was a
-silent no-op on another, which would have meant paid subscriptions never
-activating. And behind the reverse proxy, post-payment redirects pointed at the
-container's internal address until I derived URLs from the configured public
-origin. Each of these looked fine in a demo and would have broken a real paying
-customer.
+The dangerous bugs were the ones that looked fine.
+
+**The agent tried to give away the owner's money.** Testing the win-back drafts,
+Gemini offered a client "a complimentary deep conditioning treatment, just
+mention this note when you book." Nothing authorised that. On a real salon that
+is a real obligation to honour, created by software, in the owner's name. Offers
+are now bound to the promotions the owner actually configured, and with none set
+the agent is told explicitly that it has nothing to give away.
+
+**An import could have made the agent insult a loyal client.** My own UI tells
+owners to export a shorter date range if a file is too big. Doing that rewrote a
+20-visit regular as a first-timer, put her at the top of the list, and would have
+emailed a two-year client to say she came once and never rebooked. Imports now
+merge; the window only ever widens.
+
+**One appointment was counted as two visits.** Square, Fresha and Vagaro export a
+row per line item, so a cut-and-colour arrived as two visits. That silently
+deleted the flagship case: a first-timer with a two-service appointment read as a
+returning regular instead of someone with 12 days left on the cliff. The one
+client the agent most needed to catch was the one it hid.
+
+**The public feed would have published a salon's client list.** My activity feed
+was built when every log line described the business's own content. The retention
+agent broke that assumption by writing the business's CUSTOMERS into logs. An
+anonymous visitor would have read a real client's name, service history and visit
+rhythm. It is now an allowlist, so a new action type is private until someone
+decides otherwise.
+
+Each of these passed a demo. Each would have cost a real owner a real client.
 
 ## Accomplishments that I'm proud of
 
-The agent genuinely operates on its own: it makes decisions (angle and
-promotion), checks its own work, and executes a real side effect (sending email),
-not just suggesting text. It is live in production end to end: I processed a real
-payment on live Stripe keys, and a real newsletter was generated and delivered to
-a real inbox through the production path. The whole thing is honest, there is a
-public feed of every agent action, working cancel and refund flows, and
-anti-spam-compliant email, so it is a real business a real owner could trust, not
-a demo.
+**The negative control.** The homepage shows Aisha and Jane, both last seen 44
+days ago. Aisha comes every 8 weeks, so she is fine and Bloom stays silent. Jane
+comes every 4 weeks, so the identical gap means she is going. Any tool that flags
+"no visit in 60 days" treats those two identically and is wrong about one of
+them. Proving the system stays quiet when it should is harder, and worth more,
+than proving it can fire.
+
+**Recovery is measured, not claimed.** Bloom only counts a save when the owner's
+own fresh export shows a visit that is newer than both the last one it knew about
+and the note it sent. I found and fixed the version that compared visit counts,
+which would have invented saves that never happened and written them to the feed
+as fact.
+
+**It refuses to do the profitable wrong thing.** It will not contact anyone twice.
+It will not contact anyone who opted out, ever. It holds sends to reserved test
+addresses rather than earn a bounce on a domain other businesses share.
 
 ## What I learned
 
-That the differentiator in a crowded category is not "AI writes marketing," which
-everyone claims, but reliability: an agent that shows up every single week and can
-be trusted with a real customer's money and reputation. Most of the engineering
-that matters is the unglamorous correctness work, idempotency, webhook
-reliability, sanitization, that never shows up in a demo but decides whether the
-first paying customer stays.
+That the moat is not the model, it is the data only the customer has. My first
+version sold content, and I could not answer "why not just use a chatbot?"
+because there was no answer. The retention version cannot be prompted into
+existence: it needs THIS owner's booking history, and the interesting decisions
+(who to write to, and when) are ones a rule should make and an LLM should not.
+
+I also learned that the honest split is the pitch. The temptation is to say "AI
+does everything." What is actually true is narrower and stronger: a rule decides
+who, because that must be exact; the model decides what to say, because that must
+be human.
 
 ## What's next for Bloom
 
-Getting it into the hands of real local businesses and learning from them. Then a
-feedback loop so the agent learns from open and click data, and a light
-booking-system integration so it can target specific quiet periods with specific
-offers instead of generic content.
+Real salons, which is the honest gap and the thing I am working on now. Then
+storing individual visit dates rather than a per-client aggregate, so the rhythm
+strip plots real appointments instead of a median; measuring a true false-positive
+rate against owners telling me "no, she is fine"; and a direct Square/Fresha OAuth
+sync so the book refreshes itself instead of waiting for an upload.
+
+---
+
+## The uniqueness claim
+
+The one sentence to gate every scope decision against, and the one to lead with in
+the room:
+
+> **No other entry pairs a deterministic per-client rhythm engine (which decides
+> WHO is lapsing, exactly and reproducibly) with a generative agent that writes to
+> that ONE person about their ONE last visit, and then proves the save from the
+> owner's own next export.**
+
+Why each half is load-bearing:
+
+- **Per-client rhythm, not a threshold.** Everyone else's retention tool asks "no
+  visit in 60 days?" Bloom asks "is this person late *for them*?" Aisha and Jane
+  are both 44 days out; one is fine. A threshold gets one of them wrong, always.
+- **It needs data only the customer has.** You cannot prompt this into existence.
+  A chatbot can write a win-back email; it cannot know that Jane is a 28-day
+  regular who is 16 days late and worth $1,295.
+- **The save is measured, not claimed.** Recovery requires a visit newer than both
+  the last one known and the note sent. Most tools report "emails sent."
+
+**What a competent team could already do without this:** compute a median in a
+spreadsheet. **What was not possible before:** fifty individually-written notes
+that each reference a real person's actual last visit and rhythm, which no owner
+has ever had the hours to write. That is the honest version of the claim, and it
+is the one that survives a judge pushing on it.
+
+## Honest limitations
+
+What is not solved, stated plainly rather than discovered by a judge:
+
+1. **No arms-length users yet.** Zero real salons as of submission. This is the
+   real gap and I am not going to dress it up.
+2. **The false-positive rate is unmeasured.** The thresholds come from published
+   retention research, not from a validated corpus. I have a structural negative
+   control (Aisha) but no measured precision, because measuring it requires real
+   owners saying "no, she is fine." That is the first thing real users buy me.
+3. **Visit-level dates are not stored.** Bloom keeps a per-client aggregate, so the
+   rhythm strip spaces blooms at the median cadence rather than plotting real
+   appointments. It is labelled as such in the UI rather than implying more than
+   it knows.
+4. **The win-back has no self-QA gate** (unlike the content path), which is why it
+   is owner-triggered rather than autonomous.
+5. **Two visits is a weak rhythm.** With one gap, cadence is a guess, so money
+   falls back to the shop's median rather than annualising a coincidence.
+6. **CSV, not OAuth.** No live sync yet; the book is as fresh as the last upload.
+
+## Production path
+
+What a real deployment would need beyond this: direct Square/Fresha OAuth so the
+book stays current without uploads; visit-level storage; a prospective study of
+precision and recall against owners' own judgement; and a critique pass on the
+win-back before it is allowed to run unsupervised.
 
 ---
 
@@ -118,7 +260,7 @@ offers instead of generic content.
 (Comma-separated, up to 25 tags.)
 
 ```
-Next.js, React, TypeScript, Tailwind CSS, Google Gemini, Vertex AI, Google Cloud, Prisma, Neon, PostgreSQL, Stripe, Resend, Docker, Traefik, Node.js, Vercel
+Next.js, React, TypeScript, Tailwind CSS, Google Gemini, Vertex AI, Google Cloud, Prisma, Neon, PostgreSQL, Stripe, Resend, Docker, Traefik, Node.js, Papa Parse
 ```
 
 ---
@@ -139,24 +281,43 @@ Small Business Services
 
 ### Explain how your project uses AI to impact the world, specifically in the category you have chosen.
 
-Local businesses are the backbone of every neighbourhood, and most of them lose
-the marketing battle to a lack of time, not a lack of ideas. Bloom puts an AI
-marketing agent in reach of a solo owner for the price of a couple of slow-night
-tables. It does the weekly work a business cannot afford a marketer for: deciding
-what to feature, writing it in the business's voice, and sending it. By making
-consistent marketing automatic, it directly attacks the reach and revenue that
-small businesses quietly lose every time they go silent. It is squarely a Small
-Business Services play: the AI operates a real service that small businesses pay
-for.
+The biggest profit leak in a local service business is invisible. Roughly 40% of
+new clients are gone within a year, and a first-timer who does not rebook within
+30 days has about a one-in-five chance of ever coming back. Owners do not ignore
+this because they do not care. They ignore it because the signal is an ABSENCE
+spread across hundreds of people who each have a different rhythm, and because
+acting on it means writing a personal note to each one, which nobody has time for.
+
+Bloom removes both barriers. A deterministic engine finds the drift by measuring
+every client against their own median cadence, and Gemini writes each of them a
+note that reads like the owner remembered them, because it is given that person's
+real history. A shop with 400 clients might have 20 slipping in a given month,
+worth $25,000 a year between them. Saving three of them pays for the software for
+years.
+
+This is squarely Small Business Services: the AI does not advise the owner, it
+performs a service the business would otherwise pay a person for, and the outcome
+is measured in whether a specific named client walked back through the door.
 
 ### Explain the underlying business model of your submission.
 
-A subscription SaaS. Free preview to try it, then two paid tiers billed monthly
-through Stripe: Starter at $49/month (the agent writes the week and the owner
-publishes) and Pro at $99/month (the agent also emails the newsletter to the
-owner's subscribers automatically). The single capability the price difference
-buys is who sends. Gross margin is very high: the marginal cost to serve a
-business is a few cents of Gemini tokens a month against $49 to $99 of revenue.
+A subscription SaaS, and the free/paid line is the product's whole sales pitch:
+**seeing what you are losing is free, acting on it is what you pay for.**
+
+An owner uploads their book and Bloom shows them, at no cost and with no card,
+exactly who is slipping and what each is worth a year. That number is computed
+from their own data, so it is not a marketing claim they can argue with. Writing
+to those clients requires a plan: Starter $49/month or Pro $99/month, billed
+through Stripe. Between the two tiers the only difference is who sends the weekly
+newsletter; both include the win-back, because that is the reason to pay at all.
+
+The pricing argument writes itself: a lapsed regular is worth $1,200 to $3,000 a
+year, so recovering ONE client pays for a year of Starter several times over. I am
+not asking an owner to believe a projection, I am showing them their own losses
+and charging less than one of them.
+
+Gross margin is near 99%: the marginal cost to serve a business is a few cents of
+Gemini tokens and a fraction of a cent of email.
 
 ### How will you sustain business operations in the future?
 
@@ -203,24 +364,54 @@ starting]`. The honest gap is adoption, which is exactly what I am now closing.
 
 ### Please explain how your business operates with AI.
 
-AI is the operator, not an assistant. Each week, with no human trigger, the agent
-makes the decisions a marketer would: it picks the week's strategic angle and the
-promotion to feature (when the owner leaves it open), writes all four pieces of
-content in the business's brand voice, reviews its own output against a quality
-bar and rewrites it if it falls short, and then executes the delivery by emailing
-the newsletter to subscribers. A human only sets the business up once and can
-edit promotions; the recurring work is run by the AI.
+AI performs the service, and I want to be precise rather than flattering about
+which parts it runs, because the division of labour is the design.
+
+**A rule decides who, and it runs with no human in the loop.** Every client is
+scored against their own median cadence. This is deliberately NOT an LLM: the
+output is "she is worth $1,295 a year and she is leaving," and that call has to
+be exact, auditable, and identical every time it is asked. A model that
+hallucinates a rhythm would cost a real owner a real client.
+
+**Gemini decides what to say, and does the part no rule can.** Given one person's
+real history, it writes a note that sounds like the owner noticed, not like
+software noticed. It is told what it may offer (only what the owner configured)
+and what it must never reveal (that a list was consulted).
+
+**What is scheduled and what is triggered.** The weekly content agent is fully
+autonomous: it fires on a cron with no human trigger, picks the angle, writes,
+scores its own draft, rewrites when it falls short, and on Pro sends the
+newsletter. The win-back is deliberately owner-triggered, one client at a time. I
+could make it autonomous and I have chosen not to yet: this feature sends email
+in a real business's name to a real customer they care about, and an agent that
+does that unsupervised, at scale, on my judgement, is not something I would ship
+to a stranger's salon before it has earned it.
 
 ### Please explain the extent to which AI is live in production and executes key decisions.
 
-Fully live in production at https://bloom.jonathanandrei.com. The agent runs on a
-real schedule against a real database and real customer records. It executes key
-decisions autonomously: choosing the weekly angle and promotion, accepting or
-rejecting its own draft via a self-QA score (below the bar it rewrites and keeps
-the better version), and sending the newsletter through a verified domain. Every
-decision and action is written to a public activity feed at `/agent`. A real
+Fully live at https://bloom.jonathanandrei.com, running against a real database
+and real records.
+
+Autonomous today: the weekly content agent, on a real schedule, choosing the
+angle and promotion, gating its own draft on a self-QA score and rewriting below
+the bar, and delivering the newsletter through a verified domain. A real
 newsletter has been generated and delivered to a real inbox through this exact
 path.
+
+Owner-triggered today: the win-back. The owner clicks for one client; Gemini
+drafts and Bloom sends immediately, with no further human editing of the message
+before it goes. So the AI's output reaches a real customer's inbox unedited, but
+a human chooses each moment it does.
+
+**Honest limitation, stated plainly:** the win-back draft has no self-QA gate. The
+weekly content path scores and rewrites itself; the win-back makes a single call
+and sends. The gate today is the owner clicking, which is exactly why the feature
+is owner-triggered rather than scheduled. Adding a critique pass is the next thing
+I would build before letting it run on its own.
+
+Every action is written to an activity feed. The public one at `/agent` shows the
+agent working without ever naming a client, because that feed is world-readable
+and the underlying data is someone else's customer list.
 
 ### Please explain which product from Google Cloud you used during the hackathon and how.
 
@@ -233,14 +424,24 @@ triggers rewrites.
 
 ### If your project uses an LLM, it must use Gemini API for at least one LLM call. Please explain which LLMs are used and how the Gemini API is used.
 
-The only LLM used is Google Gemini 2.5 Flash, accessed through the Gemini API on
-Vertex AI. It is used for two calls per weekly run: (1) a generation call that
-returns a structured JSON object (weekly theme, chosen promotion, reasoning,
-three social posts, and the newsletter subject and HTML) using a forced response
-schema, and (2) a self-QA call that scores the draft 0 to 100 and names its
-single weakest point; when the score is below the threshold the agent rewrites
-once and keeps the better attempt. Both calls go through the Gemini API; there is
-no other LLM in the project.
+The only LLM in the project is Google Gemini 2.5 Flash, through the Gemini API on
+Vertex AI. There are three call sites, all with forced response schemas:
+
+1. **Win-back draft** (the flagship). One call per client the owner chooses to
+   reach. It receives that person's real situation (what they last had done, their
+   own cadence, how far past it they are) and returns `{subject, body, reasoning}`.
+   The prompt constrains it hard: it may only offer what the owner configured, it
+   must never reveal that a list was consulted, and the reasoning it returns is
+   recorded so the owner can see why it wrote what it wrote.
+2. **Weekly content generation.** Returns the week's theme, chosen promotion,
+   reasoning, three social posts, and the newsletter subject and HTML.
+3. **Self-QA review** of the weekly content. Scores the draft 0 to 100 and names
+   its single weakest point; below the threshold the agent rewrites once and keeps
+   the better attempt. This gate applies to the content path only, not to the
+   win-back (see the limitation noted above).
+
+Notably, the LLM is NOT used to decide who is at risk. That is a deterministic
+median-cadence calculation, on purpose.
 
 ### URL to your GitHub repo (shared with testing@devpost.com and judging@hacker.fund)
 

@@ -6,8 +6,10 @@
 #
 # Postgres is Neon, not a container here. The only state on this box is the image.
 #
-# Built from the public repo checked out in ./app:
-#   git -C app pull && docker compose up -d --build
+# Built from ./app, which is shipped from a local checkout rather than pulled
+# here: the repo is private, and a shared box is the wrong place for a credential
+# that can read it. See the deploy section of README.md for the exact commands.
+# The previous tree is kept beside it as ./app.prev, which is the rollback.
 services:
   app:
     build:
