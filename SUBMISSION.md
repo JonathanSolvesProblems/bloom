@@ -199,6 +199,77 @@ sync so the book refreshes itself instead of waiting for an upload.
 
 ---
 
+## Written narrative (500 to 1000 words)
+
+> The submission form asks for a standalone narrative on how the business was
+> built and how it runs day to day, explicitly covering what the AI does versus
+> what a human does, and the jobs and economic opportunity the business creates or
+> enables beyond the founding team, both actual and potential. This is that piece,
+> ready to paste. It is about 720 words.
+
+I set out to build an AI that writes marketing for local businesses, and I was
+wrong about the problem. Content is free now: any salon owner can get a week of
+captions out of a chatbot in the time it takes to make a coffee. I was selling
+something the market already gives away.
+
+The real problem was hiding in the retention research. In a salon or barbershop,
+nobody cancels. They just quietly stop coming, and the owner finds out months
+later, from a gap in the appointment book that nobody had time to notice. About
+40% of new clients are gone within a year. A first-timer who does not rebook
+within 30 days has roughly a one-in-five chance of ever returning. A regular is
+worth $1,200 to $3,000 a year. That is the largest single profit leak most shops
+have, and it stays invisible because it is an absence, spread across hundreds of
+people who each keep their own rhythm.
+
+Bloom reads that rhythm. An owner exports a booking-history CSV from whatever they
+already use (Fresha, Square, Vagaro, Booksy, even Google Calendar) and uploads it.
+Nothing to migrate. Bloom takes each client's own median gap between visits and
+measures them against themselves, not against a generic rule. The homepage makes
+the whole case with two clients: Aisha and Jane were both last in 44 days ago.
+Aisha comes every eight weeks, so she is fine and Bloom stays silent. Jane comes
+every four, so the identical gap means she is leaving. Any tool that flags "no
+visit in 60 days" gets one of those two wrong, every time.
+
+**What the AI does, and what a human does.** This is the part I am most deliberate
+about. A rule decides WHO is at risk, because that call has to be exact,
+reproducible, and auditable: the output is "she is worth $1,295 a year and she is
+leaving," and a model that hallucinated a rhythm would cost a real owner a real
+client. Gemini decides WHAT TO SAY, because writing a note that sounds like the
+owner remembered someone is a judgement over messy human context, which is exactly
+what a rule cannot do and an LLM can. Gemini 2.5 Flash runs on Google Cloud's
+Vertex AI for every draft. A separate weekly content agent runs fully
+autonomously: it picks the angle, writes, scores its own draft, rewrites when it
+falls short, and sends. The win-back is deliberately owner-triggered, one client
+at a time, because it sends email in a real business's name to a customer they
+care about, and I will not ship unsupervised sending at scale to a stranger's
+salon before it has earned it. Every action is logged to a public feed that shows
+the agent working without ever naming a client.
+
+**How it runs day to day.** The owner sets up once. The radar is free, because
+showing someone their own losses should not cost anything. When they act, Bloom
+drafts and sends from their verified domain, never twice, never to anyone who
+opted out. When a client books again, the owner's next export proves it, and Bloom
+counts the save from their own data rather than claiming it.
+
+**Jobs and economic opportunity beyond me.** Today the honest answer is that Bloom
+has no employees but me. What it creates is not headcount, it is protected
+livelihood. A neighbourhood salon runs on thin margins and a handful of chairs,
+and every regular who drifts away unnoticed is revenue that would otherwise pay a
+stylist. When Bloom keeps 20 clients a year who would quietly have left, worth on
+the order of $25,000, that can be the difference between a shop cutting a chair and
+keeping one, or hiring the next. The economic opportunity Bloom enables is the
+retained revenue base that local service jobs actually depend on, for people well
+beyond any founding team: the stylists, barbers, and front-desk staff whose hours
+exist only if the shop stays full. As Bloom grows, its own hiring follows the same
+logic, salon-partnership and customer-success roles whose whole purpose is keeping
+more of those chairs occupied. I would rather state that plainly, actual versus
+potential, than inflate a number I do not have.
+
+**Where it honestly stands.** The product is live in production. The gap is
+arms-length paying customers, which I am closing now by getting it into real
+salons. That is the one thing engineering cannot do for me, and it is what I am
+spending the last month of the hackathon on.
+
 ## The uniqueness claim
 
 The one sentence to gate every scope decision against, and the one to lead with in
@@ -598,7 +669,37 @@ Upload a simple P&L (template: https://bit.ly/4w3DvwL) reflecting the figures
 above: revenue $0 net, expenses ~$3, so a small net loss of about $3 for the
 period. Formats allowed: pdf, xls, xlsx, csv, png, jpg.
 
+### Revenue proof to attach (from the official email)
+
+The form wants documentary proof, not just the figures above:
+
+- **Stripe export or bank statement.** Export the Payments list from the Stripe
+  dashboard (Payments to CSV) covering the period. It will show the two July test
+  charges and their refunds, which matches the $0-net story exactly. That honesty
+  is an asset, not a liability: it proves the payment path is real and live.
+- **P&L** using the template (https://bit.ly/4w3DvwL): $0 net revenue, ~$3
+  expenses, ~$3 net loss.
+- **Corporate ID:** none. Bloom is not incorporated; it is a solo project. State
+  that plainly rather than leaving the field blank.
+
+### Customer evidence to attach (from the official email)
+
+The form asks for real customer contact info (name, email, phone) and any
+testimonials. As of now there are none, and I will not fabricate any.
+
+```
+[UPDATE: none yet. As real salons come in, add name, email, phone, and any
+written feedback here. Even one real owner saying "yes, she is exactly the client
+I would have lost" is worth more than any amount of the engineering already done.]
+```
+
 ### Confirmations
 
-- [ ] GitHub repo shared with testing@devpost.com and judging@hacker.fund
+- [ ] GitHub repo public, or shared with testing@devpost.com and judging@hacker.fund
+- [ ] 3-minute (or shorter) video, public on YouTube/Vimeo, showing the agent live
+- [ ] Written narrative pasted (see the 720-word section above)
+- [ ] Revenue proof attached (Stripe export/bank statement + P&L)
+- [ ] Product evidence attached (see docs/EVIDENCE.md + a Vertex AI usage screenshot)
+- [ ] Demo URL and password put in the private notes-to-judges field
 - [ ] No single customer represents more than 40% of revenue (true: revenue is $0)
+- [ ] Related-party revenue disclosed (two refunded founder test charges, $0 net)
