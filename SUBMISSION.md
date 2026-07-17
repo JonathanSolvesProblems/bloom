@@ -279,6 +279,22 @@ Next.js, React, TypeScript, Tailwind CSS, Google Gemini, Vertex AI, Google Cloud
 Small Business Services
 ```
 
+### Judge access (put this in the Devpost form, NOT in the public repo)
+
+The client radar and win-back sit behind an owner-only token, so a judge needs the
+demo account to see the flagship. Provide these in the submission form, which is
+private to judges, rather than here:
+
+```
+Demo: https://bloom.jonathanandrei.com/demo
+Password: <the DEMO_PASSWORD value>   (do not commit this to the public repo)
+Then: open the client radar, download the sample book, upload it, read Aisha vs Jane.
+```
+
+The password is deliberately left out of this tracked file because the repo is
+being made public. Paste it into the Devpost submission's private notes-to-judges
+field instead.
+
 ### Explain how your project uses AI to impact the world, specifically in the category you have chosen.
 
 The biggest profit leak in a local service business is invisible. Roughly 40% of
