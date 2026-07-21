@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
   // Every redirect carries the client's anchor so the page returns to the row the
   // owner was acting on, instead of dumping them back at the top of a long book.
   const back = (p: string, anchor?: string) =>
-    `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}${anchor ? `#c-${anchor}` : ''}`
+    `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}` +
+    // Both: the query param drives a reliable post-mount scroll, the fragment is
+    // kept so the URL still means something if it is copied or reloaded.
+    `${anchor ? `&focus=${anchor}#c-${anchor}` : ''}`
 
   const client = business.clients.find((c) => c.email === email)
   if (!client) return Response.redirect(back('import_error=Client%20not%20found'), 303)

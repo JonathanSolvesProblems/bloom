@@ -12,6 +12,7 @@ import PendingForm from '@/components/PendingForm'
 import ClientBook, { type BookRow } from '@/components/ClientBook'
 import DraftEditor from '@/components/DraftEditor'
 import RememberSession from '@/components/RememberSession'
+import ScrollToClient from '@/components/ScrollToClient'
 import {
   ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
 } from 'lucide-react'
@@ -49,6 +50,7 @@ export default async function ClientRadarPage({
     review?: string
     drafted?: string
     discarded?: string
+    focus?: string
   }>
 }) {
   const { businessId } = await params
@@ -62,6 +64,7 @@ export default async function ClientRadarPage({
     review,
     drafted,
     discarded,
+    focus,
   } = await searchParams
 
   const business = await db.business.findUnique({
@@ -124,6 +127,7 @@ export default async function ClientRadarPage({
   return (
     <div className="min-h-screen bg-surface">
       <RememberSession businessId={businessId} token={t} />
+      <ScrollToClient id={focus} />
       <header className="border-b border-border bg-card px-6 py-4 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
