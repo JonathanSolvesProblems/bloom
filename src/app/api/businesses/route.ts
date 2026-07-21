@@ -30,16 +30,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = schema.parse(body)
 
-    // Rate limit BEFORE the email lookup, otherwise this endpoint is an
-    // unlimited email -> businessId oracle for any address an attacker guesses.
-    if (!(await allowRequest(request, 'business', LIMITS.business))) {
+    // Run the two independent reads together to shave a round trip off signup. The
+    // rate limit still gates the RESPONSE: if the caller is over the limit we return
+    // 429 and discard the lookup, so this is not an email -> account oracle.
+    const [allowed, existing] = await Promise.all([
+      allowRequest(request, 'business', LIMITS.business),
+      db.business.findUnique({ where: { ownerEmail: data.ownerEmail } }),
+    ])
+    if (!allowed) {
       return Response.json(
         { error: 'Too many signups from your network today. Please try again tomorrow.' },
         { status: 429 }
       )
     }
-
-    const existing = await db.business.findUnique({ where: { ownerEmail: data.ownerEmail } })
     if (existing) {
       // This email already has an account. Never re-issue the dashboardToken here
       // (knowing an email must not grant access). Signal `existing` so the setup

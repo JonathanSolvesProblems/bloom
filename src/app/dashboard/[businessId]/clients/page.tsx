@@ -5,6 +5,7 @@ import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel, type Asses
 import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
 import RhythmStrip from '@/components/RhythmStrip'
+import PendingForm from '@/components/PendingForm'
 import {
   ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
 } from 'lucide-react'
@@ -379,12 +380,12 @@ function ClientRow({
               <Lock className="w-3.5 h-3.5" /> Write to them, from $49
             </Link>
           ) : (
-            <form action={winbackAction} method="post">
+            <PendingForm action={winbackAction} messages={['Reading their history', 'Writing the note']}>
               <input type="hidden" name="email" value={client.email} />
               <button type="submit" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">
                 <Sparkles className="w-3.5 h-3.5" /> Write the note
               </button>
-            </form>
+            </PendingForm>
           )}
         </div>
       </div>
@@ -409,19 +410,20 @@ function ClientRow({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 mt-3">
-            <form action={winbackAction} method="post">
+            <PendingForm action={winbackAction} messages={[`Sending to ${client.name}`]}>
               <input type="hidden" name="email" value={client.email} />
               <input type="hidden" name="action" value="send" />
               <button type="submit" className="btn-primary text-sm py-2 px-4">
                 <ArrowRight className="w-3.5 h-3.5" /> Send it to {client.name}
               </button>
-            </form>
-            <form action={winbackAction} method="post">
+            </PendingForm>
+            <PendingForm action={winbackAction} messages={['Writing a new note']}>
               <input type="hidden" name="email" value={client.email} />
               <button type="submit" className="btn-outline text-sm py-2 px-3">
                 Rewrite
               </button>
-            </form>
+            </PendingForm>
+            {/* Discard is instant (no model call), so it needs no overlay. */}
             <form action={winbackAction} method="post">
               <input type="hidden" name="email" value={client.email} />
               <input type="hidden" name="action" value="discard" />
@@ -452,14 +454,14 @@ function SampleButton({
   primary?: boolean
 }) {
   return (
-    <form action="/api/clients/import" method="post">
+    <PendingForm action="/api/clients/import" messages={['Reading the sample book', 'Working out who is slipping']}>
       <input type="hidden" name="t" value={token} />
       <input type="hidden" name="businessId" value={businessId} />
       <input type="hidden" name="sample" value={sample} />
       <button type="submit" className={primary ? 'btn-primary text-base py-3 px-7' : 'btn-outline text-sm py-2 px-4'}>
         {children}
       </button>
-    </form>
+    </PendingForm>
   )
 }
 
@@ -500,7 +502,11 @@ function EmptyState({ businessId, token }: { businessId: string; token: string }
 function ImportCard({ businessId, token, compact }: { businessId: string; token: string; compact?: boolean }) {
   return (
     <div className="card bg-card">
-      <form action="/api/clients/import" method="post" encType="multipart/form-data">
+      <PendingForm
+        action="/api/clients/import"
+        encType="multipart/form-data"
+        messages={['Reading your book', 'Working out who is slipping']}
+      >
         <input type="hidden" name="t" value={token} />
         <input type="hidden" name="businessId" value={businessId} />
         <h2 className="font-semibold text-foreground mb-2 flex items-center gap-2">
@@ -509,14 +515,14 @@ function ImportCard({ businessId, token, compact }: { businessId: string; token:
         </h2>
         <p className="text-sm text-muted mb-4">
           {compact
-            ? 'Upload a fresh export any time. Anyone who booked again after a win-back gets counted as won back.'
-            : 'Export your appointments from whatever you already use (Fresha, Square, Vagaro, Booksy, even Google Calendar) and drop the CSV here. It needs a client email and a date; service and price make it smarter. Nothing to migrate, and it stays private to you.'}
+            ? 'Upload a fresh export any time (CSV or Excel). Anyone who booked again after a win-back gets counted as won back.'
+            : 'Export your appointments from whatever you already use (Fresha, Square, Vagaro, Booksy, even Google Calendar) and drop the file here. CSV or Excel both work. It needs a client email and a date; service and price make it smarter. Nothing to migrate, and it stays private to you.'}
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="file"
             name="file"
-            accept=".csv,text/csv"
+            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             required
             className="input flex-1 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-brand-teal/10 file:text-brand-teal-text"
           />
@@ -524,7 +530,7 @@ function ImportCard({ businessId, token, compact }: { businessId: string; token:
             Analyze my clients
           </button>
         </div>
-      </form>
+      </PendingForm>
 
       {compact && (
         <div className="text-xs text-muted mt-3 flex flex-wrap items-center gap-1.5">

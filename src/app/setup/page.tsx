@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import BloomMark from '@/components/BloomMark'
+import PendingOverlay from '@/components/PendingOverlay'
 
 /**
  * One step, five fields, then the radar.
@@ -42,6 +43,12 @@ export default function SetupPage() {
     ownerName: '',
     ownerEmail: '',
   })
+
+  // Wake the serverless database while the owner is still filling the form, so the
+  // signup that follows is fast rather than paying a cold start on submit.
+  useEffect(() => {
+    fetch('/api/health').catch(() => {})
+  }, [])
 
   function set(field: keyof Form, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -89,6 +96,7 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col paper-grain">
+      {loading && <PendingOverlay messages={['Setting up your account', 'Opening your radar']} />}
       <header className="border-b border-ink bg-card px-6 py-4">
         <div className="max-w-xl mx-auto flex items-center gap-3">
           <Link href="/" className="text-muted hover:text-foreground">

@@ -422,6 +422,16 @@ h1, h2, h3 {
   to { transform: scaleX(1); }
 }
 
+/* The working state: a bloom breathing, petals opening a touch and settling. */
+@keyframes bloomPulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.75; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+.bloom-pulse {
+  animation: bloomPulse 1.3s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* BOOKED, hit with a rubber stamp: too big, rotated, then bites down. */
 @keyframes stampDown {
   0% { opacity: 0; transform: rotate(-9deg) scale(2.1); }

@@ -4,6 +4,7 @@ import { parseBookingCsv } from '@/lib/import-csv'
 import { assessAll, summarize } from '@/lib/retention'
 import { publicBaseUrl } from '@/lib/config'
 import { sampleCsv } from '@/app/api/sample-csv/route'
+import { xlsxToCsv, looksLikeXlsx } from '@/lib/xlsx'
 
 export const maxDuration = 60
 
@@ -46,7 +47,20 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_BYTES) {
       return Response.redirect(back('import_error=toobig'), 303)
     }
-    text = await file.text()
+    // Spreadsheets (Excel, Numbers, Google Sheets exports) are the common case a
+    // salon owner actually has, so read those too rather than making them convert
+    // to CSV first. Detect by name or by the zip magic bytes, since a renamed
+    // file lies about its type.
+    const isXlsx = /\.xlsx$/i.test(file.name) || (await looksLikeXlsx(file))
+    try {
+      text = isXlsx ? await xlsxToCsv(file) : await file.text()
+    } catch (err) {
+      console.error('Spreadsheet read failed:', err)
+      return Response.redirect(
+        back('import_error=I%20could%20not%20read%20that%20file.%20Try%20exporting%20it%20as%20CSV.'),
+        303
+      )
+    }
   }
 
   const result = parseBookingCsv(text)
