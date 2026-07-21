@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, use } from 'react'
-import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
+import BloomMark from '@/components/BloomMark'
 
 export default function SubscribePage({ params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = use(params)
@@ -36,9 +37,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
+          <BloomMark className="w-11 h-11 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Stay in the loop</h1>
           <p className="text-muted">
             Subscribe to get the latest news and offers delivered straight to your inbox.
@@ -47,7 +46,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
 
         {state === 'success' ? (
           <div className="card bg-card text-center py-10">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+            <CheckCircle2 className="w-12 h-12 text-brand-emerald mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-foreground mb-2">You&apos;re subscribed!</h2>
             <p className="text-muted text-sm">
               You&apos;re on the list. Look out for the next newsletter in your inbox.

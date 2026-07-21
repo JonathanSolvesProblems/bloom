@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import { Fraunces, Inter, Instrument_Serif, Geist_Mono } from 'next/font/google'
 import './globals.css'
@@ -28,11 +28,21 @@ export const metadata: Metadata = {
     'Nobody cancels, they just quietly stop coming. Bloom reads your booking history, works out who is slipping against their own rhythm, and writes each one a personal note in your voice. Upload a CSV from whatever you already use.',
 }
 
+// Matches the midnight page ground, so the mobile browser chrome does not flash a
+// different colour around the app.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f4f1ea' },
+    { media: '(prefers-color-scheme: dark)', color: '#151516' },
+  ],
+}
+
 // Belt-and-suspenders for the first visit (no cookie yet): runs in <head> before
-// first paint and applies the saved theme with no flash. The toggle writes both a
-// cookie and localStorage, so this prefers the cookie (which the server also
-// read), then localStorage, then the OS setting, and keeps all three in sync.
-const THEME_SCRIPT = `(function(){try{var d=document.documentElement;var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);var s=m?m[1]:localStorage.getItem('theme');var t=(s==='dark'||s==='light')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.setAttribute('data-theme',t);d.style.colorScheme=t;try{localStorage.setItem('theme',t)}catch(e){}}catch(e){}})();`
+// first paint and applies the saved theme with no flash. Prefers the cookie (which
+// the server also read), then localStorage, then the brand DEFAULT of dark. It no
+// longer follows the OS setting, because midnight is the brand and light is a
+// deliberate opt-in on the toggle.
+const THEME_SCRIPT = `(function(){try{var d=document.documentElement;var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);var s=m?m[1]:localStorage.getItem('theme');var t=(s==='dark'||s==='light')?s:'dark';d.setAttribute('data-theme',t);d.style.colorScheme=t;try{localStorage.setItem('theme',t)}catch(e){}}catch(e){}})();`
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Render the theme on the server from the cookie the toggle sets, so a refresh

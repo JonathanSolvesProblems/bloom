@@ -1,52 +1,40 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   The appointment book.
+   The book, after hours. (Midnight)
 
-   Before Bloom, this job was done in a paper book: ruled lines, names in pencil,
+   Before Bloom, this job was done in a paper book: ruled lines, names written in,
    and an owner who circled someone they had not seen in a while. That book is
-   where the whole product comes from, so it is where the design comes from too.
+   still the design, but the default is now the salon at night: the page goes to
+   near-black, the writing to bone, and two inks carry the whole story.
 
-   Printed like a risograph: flat stock, dense black, and ONE fluorescent ink
-   that the machine cannot mix and therefore never wastes. That constraint is the
-   palette. It is also why it does not read as generated: a model reaching for
-   "professional" lands on blue-grey and a soft green, never on fluoro pink laid
-   on cream, and pink happens to be the one loud colour a salon has always owned.
+   - Rose is the ALARM and is spent on nothing else. Not buttons, not links, not
+     headings. The moment a brand uses its alarm colour to sell you something the
+     alarm stops working, so every circled name is worth money precisely because
+     rose appears nowhere else on the page.
+   - Mint-green means alive: on rhythm, still flowering, came back.
+   - Everything structural is bone and rule. 1px lines and hard edges, never a
+     blurred shadow or a frosted panel.
 
-   Everything here is a material decision, not a decorative one:
-   - Paper and ink, not a gradient. Warm stock, dense near-black, because #000 on
-     #fff is a screen colour and this is meant to be a page.
-   - 1px rules and hard edges, never a blurred shadow or a frosted panel. A rule
-     is what a printed book uses to separate things.
-   - The pink is the ALARM and is spent on nothing else. Not buttons, not links,
-     not headings. In a real book the only marks in colour are the ones the owner
-     made on purpose, and the moment a brand uses its alarm colour to sell you
-     something, the alarm stops working. Every circled name on this site is worth
-     money precisely because pink appears nowhere else.
-   - Stamp green means one thing: they came back. It is the rubber stamp.
-
-   The palette is themed here rather than in the components, so every screen
-   (radar, dashboard, emails) inherits the book without touching them.
+   Dark is the default (`:root`); light rides on the toggle. The palette is themed
+   here, so every screen inherits it without being touched.
    ========================================================================= */
 :root {
-  --paper: #f4f1e4;
-  --paper-2: #eae6d5;
-  --paper-raised: #fcfaf2;
-  /* Dense, not muddy. The old #1a1714 on dusty cream was the washed-out look. */
-  --ink: #16150f;
-  --ink-soft: #56524a;
-  --rule: #cec7b0;
+  --paper: #151516;
+  --paper-2: #1c1c1e;
+  --paper-raised: #202023;
+  --ink: #f1eee4;
+  --ink-soft: #9a968c;
+  --rule: #2f2f31;
 
-  /* Two inks, and they are the whole story: a thing is either growing or it is
-     not. Green is alive, on rhythm, come back. Pink is the bloom that is about to
-     drop. Nothing else on the site is allowed either colour, which is why a pink
-     stem means something the instant you see one. */
-  --leaf: #1d7a45;
-  --leaf-bright: #23a15a;
-  --pencil: #ff2d6f;
-  --pencil-strong: #d1004b;
-  --stamp: #1d7a45;
-  --ballpoint: #1d7a45;
+  /* The two inks. Mint is alive, rose is the bloom about to drop. Nothing else on
+     the site is allowed either colour. */
+  --leaf: #54e0a0;
+  --leaf-bright: #74ecb6;
+  --pencil: #ff4d6d;
+  --pencil-strong: #ff7a95;
+  --stamp: #54e0a0;
+  --ballpoint: #7fb0ff;
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -54,77 +42,76 @@
   --card: var(--paper-raised);
   --muted: var(--ink-soft);
   --border: var(--rule);
-  /* Kept so existing markup does not break, but it is now paper, not frost. */
-  --glass: rgba(251, 248, 241, 0.86);
+  --glass: rgba(28, 28, 30, 0.85);
   --glass-border: var(--rule);
 
-  /* Buttons are stamped in ink, never in the fluoro. This one change does more to
-     kill the generic-SaaS read than any other in the file, and it is what keeps
-     the pink meaning "you are losing this person". */
-  --primary: #16150f;
-  --primary-dark: #000000;
-  --primary-light: #e6e0c9;
-  /* What sits ON primary. It cannot be hardcoded white: dark mode stamps in
-     paper on a dark page, and white text would vanish. */
-  --primary-fg: #fbf8f1;
+  /* On midnight the primary is bone with dark text. It is not the alarm colour,
+     which is the whole point: the eye goes to rose because nothing else is rose. */
+  --primary: #f1eee4;
+  --primary-dark: #ffffff;
+  --primary-light: #2a2a2d;
+  --primary-fg: #151516;
 
   --brand-emerald: var(--stamp);
   --brand-emerald-text: var(--stamp);
   --brand-teal: var(--ballpoint);
   --brand-teal-text: var(--ballpoint);
-  --brand-cyan: #3d6ea8;
-  --brand-violet: #6b4f7a;
+  --brand-cyan: #7fb0ff;
+  --brand-violet: #b18cff;
 
   --accent-coral: var(--pencil);
   --accent-coral-strong: var(--pencil-strong);
-  --accent-peach: #cbb894;
+  --accent-peach: #6b5f47;
 
-  --ink-dark: #14120f;
+  --ink-dark: #0e0e0f;
 }
 
-/* Theme-toggle icons: the correct one is shown by the server-set data-theme,
-   with no client JS, so a returning dark-mode user sees no wrong-icon flash. */
-.theme-icon-dark {
+/* Theme-toggle icons. Default is dark, so show the "switch to light" icon; under
+   the light theme show the "switch to dark" one. No client JS, so a returning
+   visitor sees no wrong-icon flash. */
+.theme-icon-light {
   display: none;
 }
-[data-theme='dark'] .theme-icon-dark {
+.theme-icon-dark {
   display: inline-block;
 }
-[data-theme='dark'] .theme-icon-light {
+[data-theme='light'] .theme-icon-light {
+  display: inline-block;
+}
+[data-theme='light'] .theme-icon-dark {
   display: none;
 }
 
-/* Dark is not an inverted UI, it is the same book after hours: the stock goes to
-   board, the ink goes to chalk, and the fluoro is the only thing that does not
-   change, because that is exactly how it behaves under a darkroom light. */
-[data-theme="dark"] {
-  --paper: #14130f;
-  --paper-2: #1b1a15;
-  --paper-raised: #1f1e18;
-  --ink: #f0ecdc;
-  --ink-soft: #9c968a;
-  --rule: #34322a;
+/* Daytime. A warm bone page for anyone who toggles to light: the same two inks,
+   deepened so rose and green still read against a bright ground. */
+[data-theme="light"] {
+  --paper: #f4f1ea;
+  --paper-2: #e9e5da;
+  --paper-raised: #fdfcf6;
+  --ink: #191817;
+  --ink-soft: #5c5850;
+  --rule: #d8d2c4;
 
-  --leaf: #35c47b;
-  --leaf-bright: #4ee09a;
-  --pencil: #ff3d7a;
-  --pencil-strong: #ff6b98;
-  --stamp: #35c47b;
-  --ballpoint: #35c47b;
+  --leaf: #1d7a45;
+  --leaf-bright: #23a15a;
+  --pencil: #e11d55;
+  --pencil-strong: #b30d40;
+  --stamp: #1d7a45;
+  --ballpoint: #2b57d9;
 
-  --glass: rgba(31, 28, 24, 0.86);
+  --glass: rgba(253, 252, 246, 0.86);
   --glass-border: var(--rule);
 
-  /* Ink buttons cannot be ink on a dark page: invert to paper with dark text. */
-  --primary: #f0ecdc;
-  --primary-dark: #ffffff;
-  --primary-light: #2a2820;
-  --primary-fg: #14130f;
+  /* Ink button on bone in daylight. */
+  --primary: #191817;
+  --primary-dark: #000000;
+  --primary-light: #e7e1d2;
+  --primary-fg: #f4f1ea;
 
-  --brand-cyan: #4da3f0;
-  --brand-violet: #b192c4;
-  --accent-peach: #6b5f47;
-  --ink-dark: #0f0e0b;
+  --brand-cyan: #2b57d9;
+  --brand-violet: #6b4f7a;
+  --accent-peach: #cbb894;
+  --ink-dark: #14120f;
 }
 
 @theme inline {
@@ -172,10 +159,10 @@
 }
 
 html {
-  color-scheme: light;
-}
-html[data-theme="dark"] {
   color-scheme: dark;
+}
+html[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
@@ -212,13 +199,15 @@ h1, h2, h3 {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.22;
-  mix-blend-mode: multiply;
+  /* Default is midnight: the grain lifts the near-black off pure flat with a
+     screen blend, the way film grain sits in a dark frame. */
+  opacity: 0.12;
+  mix-blend-mode: screen;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.34'/%3E%3C/svg%3E");
 }
-[data-theme='dark'] .paper-grain::after {
-  mix-blend-mode: screen;
-  opacity: 0.14;
+[data-theme='light'] .paper-grain::after {
+  mix-blend-mode: multiply;
+  opacity: 0.22;
 }
 
 /* The ruled book. 32px feed, matching the leading of the rows drawn on it. */
@@ -249,29 +238,33 @@ h1, h2, h3 {
   border-radius: 2px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  /* A hard offset block instead of a soft glow: the button sits ON the page and
-     casts an edge, the way a physical stamp would. No blur anywhere. */
+}
+/* Midnight (default): a clean bone block. A hard offset in bone would just read as
+   a glow against the near-black, so on dark the button lifts by lightening on
+   hover instead. */
+.btn-primary:hover {
+  opacity: 0.88;
+}
+.btn-primary:active {
+  transform: translateY(1px);
+}
+/* Daylight: the hard-offset stamp returns, a block that presses INTO the page. */
+[data-theme='light'] .btn-primary {
   box-shadow: 3px 3px 0 var(--ink);
 }
-[data-theme='dark'] .btn-primary {
-  box-shadow: 3px 3px 0 var(--rule);
-}
-/* Presses INTO the page rather than lifting off it. */
-.btn-primary:hover {
+[data-theme='light'] .btn-primary:hover {
+  opacity: 1;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0 var(--ink);
 }
-.btn-primary:active {
+[data-theme='light'] .btn-primary:active {
   transform: translate(3px, 3px);
   box-shadow: 0 0 0 var(--ink);
-}
-[data-theme='dark'] .btn-primary:hover {
-  box-shadow: 2px 2px 0 var(--rule);
 }
 
 /* Keyboard users need a visible focus target everywhere, not just a border tint. */

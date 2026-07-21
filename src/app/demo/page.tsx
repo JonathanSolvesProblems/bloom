@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Sparkles, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
+import BloomMark from '@/components/BloomMark'
 
 export const metadata = {
   title: 'Demo access · Bloom',
@@ -13,9 +14,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
         <Link href="/" className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4.5 h-4.5 text-white" />
-          </div>
+          <BloomMark className="w-8 h-8" />
           <span className="font-display font-bold text-foreground text-lg">Bloom</span>
         </Link>
 

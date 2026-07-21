@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Sparkles, Loader2, MailCheck } from 'lucide-react'
+import { Loader2, MailCheck } from 'lucide-react'
+import BloomMark from '@/components/BloomMark'
 
 export default function RecoverPage() {
   const [email, setEmail] = useState('')
@@ -30,15 +31,13 @@ export default function RecoverPage() {
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
         <Link href="/" className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4.5 h-4.5 text-white" />
-          </div>
+          <BloomMark className="w-8 h-8" />
           <span className="font-display font-bold text-foreground text-lg">Bloom</span>
         </Link>
 
         {state === 'sent' ? (
           <div className="card bg-card text-center py-10">
-            <MailCheck className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+            <MailCheck className="w-12 h-12 text-brand-emerald mx-auto mb-4" />
             <h1 className="text-xl font-semibold text-foreground mb-2">Check your inbox</h1>
             <p className="text-muted text-sm">
               If that email has a Bloom account, the dashboard link is on its way. It can take a minute to arrive.

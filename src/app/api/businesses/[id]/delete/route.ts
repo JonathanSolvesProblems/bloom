@@ -66,11 +66,11 @@ function page(title: string, body: string): Response {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title></head>
-<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f1e4;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#16150f">
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#151516;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#f1eee4">
   <div style="max-width:440px;padding:32px;text-align:center">
     <h1 style="font-size:1.4rem;margin:0 0 12px">${title}</h1>
-    <p style="color:#56524a;line-height:1.6;margin:0 0 24px">${body}</p>
-    <a href="/" style="display:inline-block;background:#16150f;color:#f4f1e4;text-decoration:none;padding:12px 22px;border-radius:2px;font-weight:600">Back to home</a>
+    <p style="color:#9a968c;line-height:1.6;margin:0 0 24px">${body}</p>
+    <a href="/" style="display:inline-block;background:#f1eee4;color:#151516;text-decoration:none;padding:12px 22px;border-radius:2px;font-weight:600">Back to home</a>
   </div>
 </body></html>`
   return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })

@@ -5,9 +5,16 @@ function shell(title: string, inner: string): Response {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title></head>
-<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fbfaf7;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0b1b14">
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#151516;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#f1eee4">
   <div style="max-width:420px;padding:32px;text-align:center">
-    <div style="width:44px;height:44px;border-radius:12px;background:#059669;margin:0 auto 18px"></div>
+    <svg width="40" height="40" viewBox="0 0 32 32" style="margin:0 auto 18px;display:block">
+      <rect width="32" height="32" rx="7" fill="#202023"/>
+      <g transform="translate(13 13)"><g fill="none" stroke="#f1eee4" stroke-width="1.9" stroke-linejoin="round">
+        <ellipse cx="0" cy="-6" rx="3.2" ry="5"/><ellipse cx="0" cy="-6" rx="3.2" ry="5" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-6" rx="3.2" ry="5" transform="rotate(144)"/><ellipse cx="0" cy="-6" rx="3.2" ry="5" transform="rotate(288)"/>
+      </g><circle r="2.4" fill="#f1eee4"/></g>
+      <ellipse cx="24.5" cy="24.5" rx="2.9" ry="4.6" fill="#ff4d6d" transform="rotate(34 24.5 24.5)"/>
+    </svg>
     ${inner}
   </div>
 </body></html>`
@@ -16,7 +23,7 @@ function shell(title: string, inner: string): Response {
 
 function message(title: string, body: string): Response {
   return shell(title, `<h1 style="font-size:1.35rem;margin:0 0 10px">${title}</h1>
-    <p style="color:#5b6b62;line-height:1.6;margin:0">${body}</p>`)
+    <p style="color:#9a968c;line-height:1.6;margin:0">${body}</p>`)
 }
 
 /**
@@ -29,9 +36,9 @@ function message(title: string, body: string): Response {
  */
 function confirmPage(query: string, what: string): Response {
   return shell('Unsubscribe', `<h1 style="font-size:1.35rem;margin:0 0 10px">Unsubscribe?</h1>
-    <p style="color:#5b6b62;line-height:1.6;margin:0 0 20px">You will stop receiving ${what} from this business.</p>
+    <p style="color:#9a968c;line-height:1.6;margin:0 0 20px">You will stop receiving ${what} from this business.</p>
     <form method="post" action="/api/unsubscribe?${query}">
-      <button type="submit" style="background:#059669;color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer">Yes, unsubscribe me</button>
+      <button type="submit" style="background:#f1eee4;color:#151516;border:0;border-radius:4px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer">Yes, unsubscribe me</button>
     </form>`)
 }
 

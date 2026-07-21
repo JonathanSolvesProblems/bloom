@@ -490,7 +490,7 @@ export default function HomePage() {
 
               <Reveal delay={160}>
                 <div className="card h-full flex flex-col relative ring-2 ring-brand-emerald">
-                  <div className="absolute -top-3 left-6 bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-6 bg-primary text-primary-fg text-xs font-semibold px-3 py-1 rounded-full">
                     Full autopilot
                   </div>
                   <div className="text-sm font-semibold text-brand-emerald uppercase tracking-wide mb-2">Pro</div>

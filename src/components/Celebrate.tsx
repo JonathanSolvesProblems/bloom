@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 
-const COLORS = ['#059669', '#10b981', '#22d3ee', '#f59e0b', '#8b5cf6']
+// On-brand celebration: mint (alive), rose (the alarm, now happy), ballpoint blue,
+// bone, and a soft peach. No leftover emerald from the old palette.
+const COLORS = ['#54e0a0', '#ff4d6d', '#7fb0ff', '#f1eee4', '#cbb894']
 const PIECES = 44
 /** Longest fall plus longest delay, after which the DOM nodes are pointless. */
 const LIFETIME_MS = 2600

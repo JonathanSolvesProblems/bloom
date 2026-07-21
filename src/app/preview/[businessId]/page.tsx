@@ -186,23 +186,24 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               </div>
             )}
 
-            {/* Upgrade CTA */}
-            <div className="bg-emerald-600 rounded-xl p-8 text-center text-white">
-              <h2 className="text-2xl font-bold mb-2">This is your week, every Monday</h2>
-              <p className="text-emerald-100 mb-6 max-w-md mx-auto">
+            {/* Upgrade CTA. Ink card, not a green block: green is the alive-signal
+                on this site, not a marketing background. */}
+            <div className="card bg-card border border-ink p-8 text-center">
+              <h2 className="font-display text-2xl text-foreground mb-2">This is your week, every Monday</h2>
+              <p className="text-muted mb-6 max-w-md mx-auto">
                 Starter writes your week for you to publish. Pro also emails the newsletter to your subscribers. Both
                 let me write to the clients you are about to lose, which is the part that pays for itself.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href={`/api/checkout?businessId=${businessId}&plan=starter`}
-                  className="border border-emerald-400 text-white font-semibold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                  className="btn-outline text-sm py-3 px-6"
                 >
                   Starter, $49/month
                 </Link>
                 <Link
                   href={`/api/checkout?businessId=${businessId}&plan=pro`}
-                  className="bg-white text-emerald-700 font-semibold py-3 px-8 rounded-lg hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+                  className="btn-primary text-sm py-3 px-8"
                 >
                   Pro, $99/month
                   <ArrowRight className="w-4 h-4" />
@@ -211,13 +212,13 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
               {dashToken && (
                 <Link
                   href={`/dashboard/${businessId}?t=${dashToken}`}
-                  className="inline-flex items-center justify-center gap-2 text-emerald-100 hover:text-white text-sm mt-5 underline underline-offset-4"
+                  className="inline-flex items-center justify-center gap-2 text-muted hover:text-foreground text-sm mt-5 underline underline-offset-4"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View dashboard first
                 </Link>
               )}
-              <p className="text-emerald-200 text-sm mt-4">Cancel anytime. No lock-in.</p>
+              <p className="text-muted text-sm mt-4">Cancel anytime. No lock-in.</p>
             </div>
           </>
         )}
