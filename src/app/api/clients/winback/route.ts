@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { Resend } from 'resend'
 import { db } from '@/lib/db'
 import { draftWinBack } from '@/lib/gemini'
-import { assess, businessCadence } from '@/lib/retention'
+import { assess, businessCadence, contactState } from '@/lib/retention'
 import { brandEmail } from '@/lib/email-template'
 import { publicBaseUrl } from '@/lib/config'
 import { appBaseUrl, esc, sanitizeSenderName } from '@/lib/agent-run'
@@ -44,7 +44,10 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = publicBaseUrl(request)
-  const back = (p: string) => `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}`
+  // Every redirect carries the client's anchor so the page returns to the row the
+  // owner was acting on, instead of dumping them back at the top of a long book.
+  const back = (p: string, anchor?: string) =>
+    `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}${anchor ? `#c-${anchor}` : ''}`
 
   const client = business.clients.find((c) => c.email === email)
   if (!client) return Response.redirect(back('import_error=Client%20not%20found'), 303)
@@ -55,13 +58,16 @@ export async function POST(request: NextRequest) {
   // ---- Discard a pending draft ----
   if (action === 'discard') {
     await db.client.update({ where: { id: client.id }, data: { winBackDraft: null, winBackDraftedAt: null } })
-    return Response.redirect(back(`discarded=${encodeURIComponent(client.name)}`), 303)
+    return Response.redirect(back(`discarded=${encodeURIComponent(client.name)}`, client.id), 303)
   }
 
   // ---- Send an already-approved draft ----
   if (action === 'send') {
-    if (client.winBackSentAt) return Response.redirect(back('import_error=Already%20sent'), 303)
     if (!client.winBackDraft) return Response.redirect(back('import_error=Nothing%20to%20send%2C%20draft%20one%20first'), 303)
+    const state = contactState(client)
+    if (state.kind === 'capped' || state.kind === 'opted_out') {
+      return Response.redirect(back('import_error=I%20will%20not%20write%20to%20them%20again'), 303)
+    }
 
     let draft: StoredDraft
     try {
@@ -81,17 +87,29 @@ export async function POST(request: NextRequest) {
 
     const a = assess(client, businessCadence(business.clients))
 
-    // Claim the send atomically before doing it, so a double submit cannot send
-    // twice. Also clears the pending draft, since it is being acted on now.
+    // Claim the DRAFT atomically, not the sent-timestamp: a follow-up legitimately
+    // has an earlier winBackSentAt, so the draft is what proves this send has not
+    // already happened. Two submits race, one clears the draft, the other finds
+    // nothing to claim.
     const claim = await db.client.updateMany({
-      where: { id: client.id, winBackSentAt: null },
-      data: { winBackSentAt: new Date(), winBackDraft: null, winBackDraftedAt: null },
+      where: { id: client.id, winBackDraft: { not: null } },
+      data: {
+        winBackSentAt: new Date(),
+        winBackDraft: null,
+        winBackDraftedAt: null,
+        contactCount: { increment: 1 },
+      },
     })
     if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
     const releaseForRetry = () =>
       db.client.updateMany({
         where: { id: client.id },
-        data: { winBackSentAt: null, winBackDraft: client.winBackDraft, winBackDraftedAt: client.winBackDraftedAt },
+        data: {
+          winBackSentAt: client.winBackSentAt,
+          contactCount: client.contactCount,
+          winBackDraft: client.winBackDraft,
+          winBackDraftedAt: client.winBackDraftedAt,
+        },
       })
 
     // Sample address: keep the send claimed (so a later recovery still counts) but
@@ -105,7 +123,7 @@ export async function POST(request: NextRequest) {
           details: JSON.stringify({ risk: a.level, subject: draft.subject, body: draft.body, sent: false }),
         },
       })
-      return Response.redirect(back(`drafted=${encodeURIComponent(client.name)}`), 303)
+      return Response.redirect(back(`drafted=${encodeURIComponent(client.name)}`, client.id), 303)
     }
 
     const unsubUrl = `${base}/api/unsubscribe?c=${client.id}`
@@ -152,12 +170,24 @@ export async function POST(request: NextRequest) {
         }),
       },
     })
-    return Response.redirect(back(`sent=${encodeURIComponent(client.name)}`), 303)
+    return Response.redirect(back(`sent=${encodeURIComponent(client.name)}`, client.id), 303)
   }
 
   // ---- Draft (default): write a note and store it for the owner to review ----
-  if (client.winBackSentAt) {
-    return Response.redirect(back('import_error=Already%20reached%20out%20to%20them%2C%20I%20will%20not%20nag%20twice'), 303)
+  const state = contactState(client)
+  if (state.kind === 'capped') {
+    return Response.redirect(
+      back('import_error=I%20have%20written%20to%20them%20twice%20already.%20I%20will%20not%20keep%20going.'),
+      303
+    )
+  }
+  if (state.kind === 'cooling') {
+    return Response.redirect(
+      back(
+        `import_error=${encodeURIComponent(`I wrote to them recently. You can follow up in ${state.daysLeft} ${state.daysLeft === 1 ? 'day' : 'days'}, which gives them room to reply.`)}`
+      ),
+      303
+    )
   }
 
   // Drafting is the paid, metered step, because it is the one that spends a Gemini
@@ -213,5 +243,5 @@ export async function POST(request: NextRequest) {
     data: { winBackDraft: JSON.stringify(stored), winBackDraftedAt: new Date() },
   })
 
-  return Response.redirect(back(`review=${encodeURIComponent(client.name)}`), 303)
+  return Response.redirect(back(`review=${encodeURIComponent(client.name)}`, client.id), 303)
 }

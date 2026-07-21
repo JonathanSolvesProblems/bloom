@@ -32,8 +32,39 @@ export type ClientLike = {
   avgSpend: number
   cadenceDays: number | null
   winBackSentAt?: Date | null
+  contactCount?: number | null
   unsubscribedAt?: Date | null
   recoveredAt?: Date | null
+}
+
+/**
+ * How long to wait before a second note, and how many notes are ever allowed.
+ *
+ * An owner reasonably wants to follow up once on someone who did not reply. What
+ * they must never be able to do, by accident or otherwise, is pester: two notes
+ * three weeks apart is a considerate nudge, five notes in a week is spam and would
+ * put the shared sending domain (and their own name) at risk. So the follow-up is
+ * possible, deliberate, and hard capped at two contacts per lapse. Coming back
+ * resets the count, because that is a new chapter, not more of the same one.
+ */
+export const FOLLOW_UP_AFTER_DAYS = 21
+export const MAX_CONTACTS_PER_LAPSE = 2
+
+export type ContactState =
+  | { kind: 'writable'; followUp: boolean }
+  | { kind: 'cooling'; daysLeft: number }
+  | { kind: 'capped' }
+  | { kind: 'opted_out' }
+
+/** Whether the agent may write to this person right now, and why not if not. */
+export function contactState(c: ClientLike, now: Date = new Date()): ContactState {
+  if (c.unsubscribedAt) return { kind: 'opted_out' }
+  const contacts = c.contactCount ?? 0
+  if (!c.winBackSentAt || contacts === 0) return { kind: 'writable', followUp: false }
+  if (contacts >= MAX_CONTACTS_PER_LAPSE) return { kind: 'capped' }
+  const waited = daysBetween(c.winBackSentAt, now)
+  if (waited < FOLLOW_UP_AFTER_DAYS) return { kind: 'cooling', daysLeft: FOLLOW_UP_AFTER_DAYS - waited }
+  return { kind: 'writable', followUp: true }
 }
 
 export type Assessment = {

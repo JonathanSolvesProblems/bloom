@@ -155,7 +155,12 @@ export async function POST(request: NextRequest) {
         // Only the more recent export knows what she last had done.
         lastService: isNewer ? c.lastService : (existing?.lastService ?? ''),
         avgSpend: c.avgSpend > 0 ? c.avgSpend : (existing?.avgSpend ?? 0),
-        ...(cameBack ? { recoveredAt: new Date() } : {}),
+        // Coming back closes this lapse. Clear the contact history so that if they
+        // drift again in a year the agent can help them again, instead of treating
+        // one old note as a permanent do-not-contact.
+        ...(cameBack
+          ? { recoveredAt: new Date(), winBackSentAt: null, contactCount: 0, winBackDraft: null, winBackDraftedAt: null }
+          : {}),
       },
     })
   })

@@ -16,12 +16,15 @@ import PendingForm from './PendingForm'
  */
 
 export type BookRow = {
+  id: string
   name: string
   email: string
   level: 'critical' | 'at_risk' | 'watch' | 'safe' | 'lost'
   reason: string
   annualValue: number
-  status: 'writable' | 'locked' | 'sent' | 'opted_out' | 'recovered'
+  /** Days until a follow-up is allowed, when cooling off. */
+  daysLeft?: number
+  status: 'writable' | 'follow_up' | 'cooling' | 'capped' | 'locked' | 'opted_out' | 'recovered'
 }
 
 const STYLE: Record<BookRow['level'], { label: string; dot: string; text: string }> = {
@@ -84,7 +87,8 @@ export default function ClientBook({
           return (
             <div
               key={c.email}
-              className="flex items-center gap-4 text-sm px-4 py-2.5 rounded-lg border border-border bg-card"
+              id={`c-${c.id}`}
+              className="flex items-center gap-4 text-sm px-4 py-2.5 rounded-lg border border-border bg-card scroll-mt-24"
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
               <span className="font-medium text-foreground truncate w-32 sm:w-40">{c.name}</span>
@@ -98,8 +102,17 @@ export default function ClientBook({
                 <span className="text-xs text-brand-emerald-text shrink-0 w-36 text-right flex items-center justify-end gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Came back
                 </span>
-              ) : c.status === 'sent' ? (
-                <span className="text-xs text-muted shrink-0 w-36 text-right">Reached out</span>
+              ) : c.status === 'capped' ? (
+                <span className="text-xs text-muted shrink-0 w-36 text-right" title="Two notes is my limit for one lapse">
+                  Reached out twice
+                </span>
+              ) : c.status === 'cooling' ? (
+                <span
+                  className="text-xs text-muted shrink-0 w-36 text-right"
+                  title={`Giving them room to reply. You can follow up in ${c.daysLeft} days.`}
+                >
+                  Reached out, waiting
+                </span>
               ) : c.status === 'locked' ? (
                 <Link
                   href={`/api/checkout?businessId=${businessId}&plan=starter`}
@@ -109,14 +122,17 @@ export default function ClientBook({
                 </Link>
               ) : (
                 <div className="shrink-0 w-36 flex justify-end">
-                  <PendingForm action={winbackAction} messages={['Reading their history', 'Writing the note']}>
+                  <PendingForm
+                    action={winbackAction}
+                    messages={['Reading their history', c.status === 'follow_up' ? 'Writing a follow-up' : 'Writing the note']}
+                  >
                     <input type="hidden" name="email" value={c.email} />
                     <button
                       type="submit"
                       className="btn-outline text-xs py-1.5 px-2.5 whitespace-nowrap"
                       title={`Write a note to ${c.name}`}
                     >
-                      <Sparkles className="w-3 h-3" /> Write a note
+                      <Sparkles className="w-3 h-3" /> {c.status === 'follow_up' ? 'Follow up' : 'Write a note'}
                     </button>
                   </PendingForm>
                 </div>

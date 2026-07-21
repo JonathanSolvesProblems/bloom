@@ -77,8 +77,12 @@ model Client {
   /// of a product that emails your clients. Cleared on send or discard.
   winBackDraft   String?
   winBackDraftedAt DateTime?
-  /// Set when the agent has already reached out, so it never nags twice.
+  /// When the agent last reached out. Cleared if they come back, so a client who
+  /// returns and later lapses again can be helped a second time.
   winBackSentAt DateTime?
+  /// How many notes have gone to this person in the current lapse. Hard capped, so
+  /// a follow-up is possible but pestering is not.
+  contactCount  Int       @default(0)
   /// Anti-spam law applies to win-back email too. Once set, the agent will never
   /// contact this person again.
   unsubscribedAt DateTime?

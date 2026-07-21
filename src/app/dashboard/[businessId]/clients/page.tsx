@@ -1,7 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { assessAll, summarize, NEW_CLIENT_CLIFF_DAYS, type RiskLevel, type Assessed, type ClientLike } from '@/lib/retention'
+import {
+  assessAll, summarize, contactState, NEW_CLIENT_CLIFF_DAYS,
+  type RiskLevel, type Assessed, type ClientLike,
+} from '@/lib/retention'
 import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
 import RhythmStrip from '@/components/RhythmStrip'
@@ -18,7 +21,7 @@ export const dynamic = 'force-dynamic'
  * this screen has to name them, so it carries the identity fields alongside.
  */
 type RadarClient = Assessed<
-  ClientLike & { name: string; email: string; lastService: string; winBackDraft: string | null }
+  ClientLike & { id: string; name: string; email: string; lastService: string; winBackDraft: string | null }
 >
 
 const RISK_STYLE: Record<RiskLevel, { label: string; dot: string; text: string; ring: string }> = {
@@ -84,22 +87,32 @@ export default async function ClientRadarPage({
 
   // The rest of the book stays reachable: the owner knows things the booking
   // history does not, so every client can be written to, not just the flagged ones.
-  const bookRows: BookRow[] = rest.map((c) => ({
-    name: c.name,
-    email: c.email,
-    level: c.assessment.level,
-    reason: c.assessment.reason,
-    annualValue: c.assessment.annualValue,
-    status: c.unsubscribedAt
-      ? 'opted_out'
-      : c.recoveredAt
-        ? 'recovered'
-        : c.winBackSentAt
-          ? 'sent'
-          : isActive
-            ? 'writable'
-            : 'locked',
-  }))
+  const bookRows: BookRow[] = rest.map((c) => {
+    const state = contactState(c)
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      level: c.assessment.level,
+      reason: c.assessment.reason,
+      annualValue: c.assessment.annualValue,
+      daysLeft: state.kind === 'cooling' ? state.daysLeft : undefined,
+      status:
+        state.kind === 'opted_out'
+          ? 'opted_out'
+          : c.recoveredAt && state.kind === 'writable' && !state.followUp
+            ? 'recovered'
+            : state.kind === 'capped'
+              ? 'capped'
+              : state.kind === 'cooling'
+                ? 'cooling'
+                : !isActive
+                  ? 'locked'
+                  : state.followUp
+                    ? 'follow_up'
+                    : 'writable',
+    }
+  })
 
   return (
     <div className="min-h-screen bg-surface">
@@ -311,6 +324,7 @@ function ClientRow({
       : null
 
   const winbackAction = `/api/clients/winback?businessId=${businessId}&t=${encodeURIComponent(token)}`
+  const state = contactState(client)
   // A note the agent has written but the owner has not sent yet.
   let draft: { subject?: string; body?: string; reasoning?: string } | null = null
   if (client.winBackDraft) {
@@ -322,7 +336,9 @@ function ClientRow({
   }
 
   return (
-    <div className={`card bg-card ring-1 ${style.ring}`}>
+    // Anchored so a redirect after drafting or sending lands on this row, rather
+    // than at the top of a long book.
+    <div id={`c-${client.id}`} className={`card bg-card ring-1 ${style.ring} scroll-mt-24`}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -370,17 +386,33 @@ function ClientRow({
             <div className="font-mono font-bold text-foreground">${a.annualValue.toLocaleString()}</div>
             <div className="text-[11px] text-muted">a year</div>
           </div>
-          {client.unsubscribedAt ? (
+          {state.kind === 'opted_out' ? (
             // They asked not to be contacted. That decision outranks the revenue.
             <span className="text-xs text-muted whitespace-nowrap px-3">Opted out</span>
-          ) : client.recoveredAt ? (
+          ) : client.recoveredAt && state.kind === 'writable' && !state.followUp ? (
             <span className="text-xs font-semibold text-brand-emerald-text whitespace-nowrap px-3 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" /> Came back
             </span>
-          ) : client.winBackSentAt ? (
-            <span className="text-xs text-muted whitespace-nowrap px-3">Reached out, waiting</span>
           ) : client.winBackDraft ? (
             <span className="text-xs font-semibold text-brand-teal-text whitespace-nowrap px-3">Draft ready ↓</span>
+          ) : state.kind === 'capped' ? (
+            <span className="text-xs text-muted whitespace-nowrap px-3" title="Two notes is my limit for one lapse">
+              Reached out twice
+            </span>
+          ) : state.kind === 'cooling' ? (
+            <span
+              className="text-xs text-muted whitespace-nowrap px-3"
+              title={`Giving them room to reply. You can follow up in ${state.daysLeft} days.`}
+            >
+              Reached out, waiting
+            </span>
+          ) : state.followUp ? (
+            <PendingForm action={winbackAction} messages={['Reading their history', 'Writing a follow-up']}>
+              <input type="hidden" name="email" value={client.email} />
+              <button type="submit" className="btn-outline text-sm py-2 px-4 whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5" /> Follow up
+              </button>
+            </PendingForm>
           ) : !isActive ? (
             // Do not render a button that is going to bounce. Say what it costs.
             <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-outline text-sm py-2 px-4 whitespace-nowrap">
