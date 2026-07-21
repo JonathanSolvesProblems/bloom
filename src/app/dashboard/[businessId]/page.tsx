@@ -44,10 +44,10 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ t?: string }>
+  searchParams: Promise<{ t?: string; saved?: string }>
 }) {
   const { businessId } = await params
-  const { t } = await searchParams
+  const { t, saved } = await searchParams
 
   const business = await db.business.findUnique({
     where: { id: businessId },
@@ -95,6 +95,9 @@ export default async function DashboardPage({
   const tokenQuery = encodeURIComponent(t)
   const hasMailingAddress = !!business.mailingAddress?.trim()
 
+  // The shared demo is what judges and testers land in, so destructive controls
+  // are hidden there.
+  const isDemo = !!process.env.DEMO_BUSINESS_ID && businessId === process.env.DEMO_BUSINESS_ID
   const radar = summarize(assessAll(business.clients))
   const radarUrl = `/dashboard/${businessId}/clients?t=${tokenQuery}`
 
@@ -457,6 +460,7 @@ export default async function DashboardPage({
 
         {/* Newsletter branding (paid) */}
         <BrandingCard
+          saved={saved === 'branding'}
           businessId={businessId}
           token={t}
           isActive={isActive}
@@ -472,6 +476,8 @@ export default async function DashboardPage({
           isActive={isActive}
           cancelling={isActive && business.cancelAtPeriodEnd}
           planLabel={isPro ? 'Pro' : isActive ? 'Starter' : 'Free'}
+          isDemo={isDemo}
+          saved={saved === 'address'}
         />
       </div>
     </div>
@@ -479,6 +485,7 @@ export default async function DashboardPage({
 }
 
 function BrandingCard({
+  saved,
   businessId,
   token,
   isActive,
@@ -490,12 +497,16 @@ function BrandingCard({
   isActive: boolean
   brandColor: string
   logoUrl: string
+  saved?: boolean
 }) {
   const color = /^#[0-9a-fA-F]{6}$/.test(brandColor) ? brandColor : '#047857'
 
   return (
-    <div className="card bg-card">
-      <h2 className="font-semibold text-foreground mb-2">Newsletter branding</h2>
+    <div id="branding" className="card bg-card scroll-mt-24">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h2 className="font-semibold text-foreground">Newsletter branding</h2>
+        {saved && <span className="text-xs font-semibold text-brand-emerald-text">Saved</span>}
+      </div>
       <p className="text-sm text-muted mb-4">
         Put your logo and color in the header of every newsletter, so it looks like it came from you. This applies to
         your emailed newsletter and the preview.
@@ -503,6 +514,7 @@ function BrandingCard({
 
       {isActive ? (
         <form action={`/api/businesses/${businessId}/promotions`} method="POST" className="space-y-4">
+        <input type="hidden" name="section" value="branding" />
           <input type="hidden" name="t" value={token} />
           <div className="flex items-center gap-3">
             <input
@@ -552,6 +564,8 @@ function SettingsCard({
   isActive,
   cancelling,
   planLabel,
+  isDemo,
+  saved,
 }: {
   businessId: string
   token: string
@@ -559,15 +573,21 @@ function SettingsCard({
   isActive: boolean
   cancelling: boolean
   planLabel: string
+  isDemo: boolean
+  saved?: boolean
 }) {
   return (
-    <div className="card bg-card">
-      <h2 className="font-semibold text-foreground mb-2">Business postal address</h2>
+    <div id="address" className="card bg-card scroll-mt-24">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h2 className="font-semibold text-foreground">Business postal address</h2>
+        {saved && <span className="text-xs font-semibold text-brand-emerald-text">Saved</span>}
+      </div>
       <p className="text-sm text-muted mb-4">
         A street address or PO box, not an email. It appears in the footer of every newsletter, which anti-spam law
         requires, so Pro sending stays on hold until it is set.
       </p>
       <form action={`/api/businesses/${businessId}/promotions`} method="POST">
+        <input type="hidden" name="section" value="address" />
         <input type="hidden" name="t" value={token} />
         <input
           name="mailingAddress"
@@ -613,8 +633,9 @@ function SettingsCard({
       </div>
 
       {/* Keeps the privacy promise, and answers the biggest objection to uploading
-          a client list: you can take it all back. */}
-      <DeleteAccount businessId={businessId} token={token} />
+          a client list: you can take it all back. Hidden on the shared demo, which
+          judges and testers use, so nobody can wipe it by accident. */}
+      {!isDemo && <DeleteAccount businessId={businessId} token={token} />}
     </div>
   )
 }
@@ -630,6 +651,7 @@ function PromotionsEditor({
 }) {
   return (
     <form action={`/api/businesses/${businessId}/promotions`} method="POST" className="card bg-card">
+        <input type="hidden" name="section" value="promotions" />
       <input type="hidden" name="t" value={token} />
       <h2 className="font-semibold text-foreground mb-2">Update this week&apos;s promotions</h2>
       <p className="text-sm text-muted mb-4">

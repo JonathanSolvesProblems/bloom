@@ -21,6 +21,26 @@ const UNDELIVERABLE = /@(example\.(com|org|net)|test|invalid|localhost)$/i
 type StoredDraft = { subject: string; body: string; reasoning: string; model: string; tokensUsed: number }
 
 /**
+ * Turn the owner's edited plain text back into the simple paragraph markup the
+ * email template expects. Escaped first, so nothing they paste can inject markup,
+ * then sanitised downstream like any other body.
+ */
+function textToHtml(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((para) => para.trim())
+    .filter(Boolean)
+    .map(
+      (para) =>
+        `<p>${esc(para)
+          .split('\n')
+          .join('<br />')}</p>`
+    )
+    .join('')
+}
+
+/**
  * Win one specific client back, in two deliberate steps.
  *
  * `draft` (the default): the agent reads the client's real history and writes a
@@ -75,6 +95,14 @@ export async function POST(request: NextRequest) {
     } catch {
       return Response.redirect(back('import_error=That%20draft%20was%20corrupted%2C%20write%20a%20new%20one'), 303)
     }
+
+    // What the owner sees is what gets sent. If they edited the note, their words
+    // win over the model's, rebuilt into the same simple markup and run through the
+    // same sanitiser rather than trusted as HTML.
+    const editedSubject = form.get('subject')?.toString().trim()
+    const editedBody = form.get('body')?.toString()
+    if (editedSubject) draft.subject = editedSubject.slice(0, 200)
+    if (editedBody?.trim()) draft.body = textToHtml(editedBody.slice(0, 4000))
 
     const apiKey = process.env.RESEND_API_KEY
     const fromDomain = process.env.RESEND_FROM_DOMAIN

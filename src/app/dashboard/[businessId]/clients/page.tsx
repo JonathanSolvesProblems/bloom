@@ -10,6 +10,7 @@ import Celebrate from '@/components/Celebrate'
 import RhythmStrip from '@/components/RhythmStrip'
 import PendingForm from '@/components/PendingForm'
 import ClientBook, { type BookRow } from '@/components/ClientBook'
+import DraftEditor from '@/components/DraftEditor'
 import {
   ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
 } from 'lucide-react'
@@ -80,8 +81,13 @@ export default async function ClientRadarPage({
   // Everyone worth acting on, most valuable save first. Anyone carrying a drafted
   // note is promoted here too, whatever their risk, so the owner can always find
   // and read what the agent wrote rather than losing it in the long list.
+  // A pending draft ALWAYS surfaces here, whatever the risk level and whether or
+  // not they were written to before. Requiring winBackSentAt to be empty meant a
+  // follow-up draft on a previously-contacted client was written but never
+  // rendered, so the click looked like it had done nothing and the owner clicked
+  // again, quietly paying for another draft each time.
   const isActionable = (c: (typeof assessed)[number]) =>
-    ['critical', 'at_risk'].includes(c.assessment.level) || (!!c.winBackDraft && !c.winBackSentAt)
+    ['critical', 'at_risk'].includes(c.assessment.level) || !!c.winBackDraft
   const actionable = assessed.filter(isActionable)
   const rest = assessed.filter((c) => !isActionable(c))
 
@@ -429,49 +435,18 @@ function ClientRow({
         </div>
       </div>
 
-      {/* The draft, held for the owner to read before it goes anywhere. This is
-          the trust story: nothing reaches a client without them seeing it first. */}
-      {draft && !client.winBackSentAt && !client.unsubscribedAt && (
-        <div className="mt-4 pt-4 border-t border-rule">
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">To {client.name} · subject</p>
-            <p className="text-foreground font-medium mt-1">{draft.subject}</p>
-            {draft.body && (
-              <div
-                className="mt-3 pt-3 border-t border-border text-sm text-foreground leading-relaxed [&_p]:mb-2"
-                dangerouslySetInnerHTML={{ __html: draft.body }}
-              />
-            )}
-          </div>
-          {draft.reasoning && (
-            <p className="text-xs text-muted mt-2 leading-relaxed">
-              <span className="font-semibold">Why I wrote it that way:</span> {draft.reasoning}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <PendingForm action={winbackAction} messages={[`Sending to ${client.name}`]}>
-              <input type="hidden" name="email" value={client.email} />
-              <input type="hidden" name="action" value="send" />
-              <button type="submit" className="btn-primary text-sm py-2 px-4">
-                <ArrowRight className="w-3.5 h-3.5" /> Send it to {client.name}
-              </button>
-            </PendingForm>
-            <PendingForm action={winbackAction} messages={['Writing a new note']}>
-              <input type="hidden" name="email" value={client.email} />
-              <button type="submit" className="btn-outline text-sm py-2 px-3">
-                Rewrite
-              </button>
-            </PendingForm>
-            {/* Discard is instant (no model call), so it needs no overlay. */}
-            <form action={winbackAction} method="post">
-              <input type="hidden" name="email" value={client.email} />
-              <input type="hidden" name="action" value="discard" />
-              <button type="submit" className="text-sm py-2 px-3 text-muted hover:text-accent-coral-strong transition-colors">
-                Discard
-              </button>
-            </form>
-          </div>
-        </div>
+      {/* The draft, held for the owner to read AND change before it goes anywhere.
+          Seeing the words was half the trust story; being able to edit them is the
+          other half, because the agent does not know what the owner knows. */}
+      {draft && !client.unsubscribedAt && (
+        <DraftEditor
+          action={winbackAction}
+          email={client.email}
+          clientName={client.name}
+          subject={draft.subject ?? ''}
+          bodyHtml={draft.body ?? ''}
+          reasoning={draft.reasoning}
+        />
       )}
     </div>
   )

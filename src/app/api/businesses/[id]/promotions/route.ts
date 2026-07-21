@@ -50,6 +50,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
+  // Come back to the section that was saved, not the top of the dashboard, and
+  // say so. Saving a colour and being thrown back to the header reads as if
+  // nothing happened.
+  const section = (body.get('section')?.toString() ?? '').replace(/[^a-z-]/g, '').slice(0, 24)
   const { redirect } = await import('next/navigation')
-  redirect(`/dashboard/${id}?t=${encodeURIComponent(token)}`)
+  redirect(
+    `/dashboard/${id}?t=${encodeURIComponent(token)}${section ? `&saved=${section}#${section}` : ''}`
+  )
 }

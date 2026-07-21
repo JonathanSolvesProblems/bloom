@@ -24,6 +24,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return new Response('Not found', { status: 404 })
   }
 
+  // The shared demo account is what judges and testers land in, and its password
+  // is handed out. One stray click there would take the demo down for everyone,
+  // so it simply cannot be deleted through the app.
+  if (process.env.DEMO_BUSINESS_ID && businessId === process.env.DEMO_BUSINESS_ID) {
+    return page(
+      'The demo cannot be deleted',
+      'This is the shared demo account, so deleting it is switched off on purpose. Nothing has been changed. Create your own account to try the delete flow.'
+    )
+  }
+
   // Stop billing first. If this throws, do NOT delete: leaving the account intact
   // is far better than destroying the record while a subscription keeps charging a
   // card with nothing left to point it at.

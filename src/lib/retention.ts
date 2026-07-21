@@ -59,8 +59,11 @@ export type ContactState =
 /** Whether the agent may write to this person right now, and why not if not. */
 export function contactState(c: ClientLike, now: Date = new Date()): ContactState {
   if (c.unsubscribedAt) return { kind: 'opted_out' }
-  const contacts = c.contactCount ?? 0
-  if (!c.winBackSentAt || contacts === 0) return { kind: 'writable', followUp: false }
+  if (!c.winBackSentAt) return { kind: 'writable', followUp: false }
+  // A send timestamp means they HAVE been written to, so it outranks the counter.
+  // Rows created before the counter existed carry the default 0, and trusting that
+  // would quietly reopen everyone who had already been contacted.
+  const contacts = Math.max(c.contactCount ?? 0, 1)
   if (contacts >= MAX_CONTACTS_PER_LAPSE) return { kind: 'capped' }
   const waited = daysBetween(c.winBackSentAt, now)
   if (waited < FOLLOW_UP_AFTER_DAYS) return { kind: 'cooling', daysLeft: FOLLOW_UP_AFTER_DAYS - waited }
