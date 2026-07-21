@@ -8,6 +8,8 @@ import { db } from '@/lib/db'
 import CopyField from '@/components/CopyField'
 import DeleteAccount from '@/components/DeleteAccount'
 import BloomMark from '@/components/BloomMark'
+import RememberSession from '@/components/RememberSession'
+import SignOut from '@/components/SignOut'
 import { assessAll, summarize } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
@@ -108,6 +110,9 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen bg-surface">
+      {/* Remember this dashboard on this device, so coming back to the site does
+          not mean hunting for the emailed link. */}
+      <RememberSession businessId={businessId} token={t} />
       {/* Header */}
       <header className="border-b border-border bg-card px-6 py-4 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -121,6 +126,9 @@ export default async function DashboardPage({
             <Link href="/agent" className="text-xs text-muted hover:text-foreground transition-colors hidden sm:flex items-center gap-1">
               <Activity className="w-3.5 h-3.5" /> Agent feed
             </Link>
+            <div className="hidden sm:block">
+              <SignOut />
+            </div>
             {isActive ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 bg-brand-emerald/10 text-brand-emerald-text text-xs font-semibold px-3 py-1.5 rounded-full">

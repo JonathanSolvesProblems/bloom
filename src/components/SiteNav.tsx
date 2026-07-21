@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import BloomMark from './BloomMark'
 
-export default function SiteNav() {
+export default function SiteNav({ hasSession }: { hasSession?: boolean }) {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -37,9 +37,24 @@ export default function SiteNav() {
             Pricing
           </a>
           <ThemeToggle />
-          <Link href="/setup" className="btn-primary text-sm py-2 px-4">
-            Get started
-          </Link>
+          {hasSession ? (
+            // A returning owner should never have to hunt for the emailed link.
+            <Link href="/dashboard" className="btn-primary text-sm py-2 px-4">
+              My dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/recover"
+                className="text-sm text-muted hover:text-foreground transition-colors hidden sm:block"
+              >
+                Sign in
+              </Link>
+              <Link href="/setup" className="btn-primary text-sm py-2 px-4">
+                Get started
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

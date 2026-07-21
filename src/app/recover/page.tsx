@@ -46,9 +46,10 @@ export default function RecoverPage() {
         ) : (
           <form onSubmit={handleSubmit} className="card bg-card space-y-4">
             <div className="text-center mb-2">
-              <h1 className="text-xl font-semibold text-foreground">Find your dashboard</h1>
+              <h1 className="text-xl font-semibold text-foreground">Sign in</h1>
               <p className="text-muted text-sm mt-1">
-                Enter the email you signed up with and I&apos;ll send your dashboard link.
+                There are no passwords here. Enter the email you signed up with and I&apos;ll send your dashboard link,
+                which signs you in and stays remembered on this device.
               </p>
             </div>
             <input

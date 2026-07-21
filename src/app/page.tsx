@@ -31,6 +31,8 @@ import RhythmWall from '@/components/RhythmWall'
 import CountUp from '@/components/CountUp'
 import Reveal from '@/components/Reveal'
 import { SUPPORT_EMAIL } from '@/lib/config'
+import { cookies } from 'next/headers'
+import { SESSION_COOKIE } from '@/app/api/session/route'
 
 // Industry retention figures, used to frame the problem honestly instead of
 // projecting Bloom's own output as a benefit.
@@ -119,10 +121,14 @@ const faqs = [
   },
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Only whether a session exists, never its value: this decides between "Get
+  // started" and "My dashboard" in the nav.
+  const hasSession = !!(await cookies()).get(SESSION_COOKIE)?.value
+
   return (
     <div className="flex flex-col min-h-screen">
-      <SiteNav />
+      <SiteNav hasSession={hasSession} />
 
       <main className="flex-1">
         {/* Hero. Deliberately asymmetric and left-hung: a centered stack under a
