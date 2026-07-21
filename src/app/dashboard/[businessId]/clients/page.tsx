@@ -6,6 +6,7 @@ import CountUp from '@/components/CountUp'
 import Celebrate from '@/components/Celebrate'
 import RhythmStrip from '@/components/RhythmStrip'
 import PendingForm from '@/components/PendingForm'
+import ClientBook, { type BookRow } from '@/components/ClientBook'
 import {
   ArrowLeft, Upload, AlertTriangle, TrendingDown, Sparkles, CheckCircle2, PartyPopper, Lock, ArrowRight,
 } from 'lucide-react'
@@ -73,9 +74,32 @@ export default async function ClientRadarPage({
   const dash = `/dashboard/${businessId}?t=${encodeURIComponent(t)}`
   const isActive = business.subscriptionStatus === 'active'
 
-  // Everyone worth acting on, most valuable save first.
-  const actionable = assessed.filter((c) => ['critical', 'at_risk'].includes(c.assessment.level))
-  const rest = assessed.filter((c) => !['critical', 'at_risk'].includes(c.assessment.level))
+  // Everyone worth acting on, most valuable save first. Anyone carrying a drafted
+  // note is promoted here too, whatever their risk, so the owner can always find
+  // and read what the agent wrote rather than losing it in the long list.
+  const isActionable = (c: (typeof assessed)[number]) =>
+    ['critical', 'at_risk'].includes(c.assessment.level) || (!!c.winBackDraft && !c.winBackSentAt)
+  const actionable = assessed.filter(isActionable)
+  const rest = assessed.filter((c) => !isActionable(c))
+
+  // The rest of the book stays reachable: the owner knows things the booking
+  // history does not, so every client can be written to, not just the flagged ones.
+  const bookRows: BookRow[] = rest.map((c) => ({
+    name: c.name,
+    email: c.email,
+    level: c.assessment.level,
+    reason: c.assessment.reason,
+    annualValue: c.assessment.annualValue,
+    status: c.unsubscribedAt
+      ? 'opted_out'
+      : c.recoveredAt
+        ? 'recovered'
+        : c.winBackSentAt
+          ? 'sent'
+          : isActive
+            ? 'writable'
+            : 'locked',
+  }))
 
   return (
     <div className="min-h-screen bg-surface">
@@ -249,32 +273,15 @@ export default async function ClientRadarPage({
               <div className="card bg-card text-center py-10">
                 <CheckCircle2 className="w-10 h-10 text-brand-emerald mx-auto mb-3" />
                 <p className="font-semibold text-foreground">Nobody is slipping right now</p>
-                <p className="text-sm text-muted mt-1">Every client is on their own rhythm. I will keep watching.</p>
+                <p className="text-sm text-muted mt-1">
+                  All {business.clients.length} {business.clients.length === 1 ? 'client' : 'clients'} in your book are
+                  on their own rhythm, and your book is saved. I will keep watching, and you can still write to anyone
+                  below.
+                </p>
               </div>
             )}
 
-            {rest.length > 0 && (
-              <section>
-                <h2 className="font-semibold text-foreground mb-3">Everyone else</h2>
-                <div className="space-y-2">
-                  {rest.slice(0, 30).map((c) => (
-                    <div
-                      key={c.email}
-                      className="flex items-center gap-3 text-sm px-4 py-2.5 rounded-lg border border-border bg-card"
-                    >
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${RISK_STYLE[c.assessment.level].dot}`} />
-                      <span className="font-medium text-foreground truncate w-40">{c.name}</span>
-                      <span className={`text-xs shrink-0 ${RISK_STYLE[c.assessment.level].text}`}>
-                        {RISK_STYLE[c.assessment.level].label}
-                      </span>
-                      <span className="text-muted text-xs flex-1 truncate hidden sm:block">{c.assessment.reason}</span>
-                      <span className="text-muted font-mono text-xs shrink-0">${c.assessment.annualValue}/yr</span>
-                    </div>
-                  ))}
-                  {rest.length > 30 && <p className="text-xs text-muted pt-1">+{rest.length - 30} more</p>}
-                </div>
-              </section>
-            )}
+            {bookRows.length > 0 && <ClientBook rows={bookRows} businessId={businessId} token={t} />}
 
             <ImportCard businessId={businessId} token={t} compact />
           </>
