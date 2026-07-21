@@ -2,7 +2,7 @@
 
 **Bloom finds the clients a local business is about to lose, and writes to each one personally.**
 
-Nobody cancels. They just quietly stop coming, and the owner finds out months later, if ever. Roughly 40% of new clients are gone within a year, a first-timer who does not rebook within 30 days has about a one-in-five chance of ever returning, and a regular is worth $1,200 to $3,000 a year. The signal is invisible because it is an *absence*, spread across hundreds of people who each have their own rhythm.
+Nobody cancels. They just quietly stop coming, and the owner finds out months later, if ever. A typical salon loses about 40% of its clients every year, a first-timer who does not rebook within 30 days has about a one-in-five chance of ever returning, and a loyal regular is worth several hundred dollars a year (about $600). The signal is invisible because it is an *absence*, spread across hundreds of people who each have their own rhythm.
 
 An owner uploads a booking-history CSV from whatever they already use. Bloom works out each client's own visit rhythm, flags the ones drifting from it, and drafts a personal note to each. It is your appointment book, but it reads itself.
 

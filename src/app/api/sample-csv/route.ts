@@ -87,16 +87,20 @@ function toDate(daysAgo: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export async function GET(request: Request) {
-  const returned = new URL(request.url).searchParams.get('returned') === '1'
-
+/** The sample as a CSV string, so the import route can seed it without a round
+ *  trip through HTTP. */
+export function sampleCsv(returned: boolean): string {
   const rows = buildRows(returned)
     .sort((a, b) => b.daysAgo - a.daysAgo)
     // Deliberately messy headers and column order: this is what a real export looks
     // like, and the importer is supposed to cope with it.
     .map((v) => `${toDate(v.daysAgo)},${v.name},${v.email},${v.service},${v.price.toFixed(2)},Completed`)
+  return ['Appointment Date,Client Name,Client Email,Service,Total,Status', ...rows].join('\r\n')
+}
 
-  const csv = ['Appointment Date,Client Name,Client Email,Service,Total,Status', ...rows].join('\r\n')
+export async function GET(request: Request) {
+  const returned = new URL(request.url).searchParams.get('returned') === '1'
+  const csv = sampleCsv(returned)
 
   return new Response(csv, {
     headers: {

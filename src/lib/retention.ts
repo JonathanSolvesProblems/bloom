@@ -2,13 +2,16 @@
  * The retention engine: works out who this business is about to lose, and what
  * that costs them.
  *
- * The thresholds are not invented, they come from the industry research:
+ * The thresholds come from published salon industry benchmarks (Simple Salon,
+ * JeriCommerce, Zoca). They are vendor data, not peer-reviewed, so they frame the
+ * problem; the dollar figure the product acts on is each client's OWN value,
+ * computed from their real spend (see annualValue), not this benchmark:
  * - A first-time client who does not rebook within 30 days has only about a 20%
  *   chance of ever returning. That makes days 7 to 30 after a first visit the
  *   single highest-value moment to act, and it is the moment nobody is watching.
- * - Salons lose roughly 40% of new clients within 12 months, the biggest single
- *   profit leak in the business.
- * - A regular client is worth $1,200 to $3,000 a year, so each save is real money.
+ * - A typical salon loses 30 to 40% of its clients every year, even a well-run one.
+ * - A loyal regular is worth several hundred dollars a year (roughly $600 annualized
+ *   from the loyalty-member figures), so saving even one covers the software.
  *
  * The part a prompt cannot do: risk is judged against each client's OWN rhythm.
  * A 4-week regular at 6 weeks is drifting. An 8-week regular at 6 weeks is fine.

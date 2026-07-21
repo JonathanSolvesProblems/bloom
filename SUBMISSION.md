@@ -46,7 +46,7 @@ Bloom: the AI that catches the clients you're about to lose
 ### Elevator pitch (max 200 characters)
 
 ```
-Nobody cancels, they just stop coming. Bloom reads your booking history, finds who is drifting from their own visit rhythm, and writes each one a personal note. One salon client is worth $1,200 a year.
+Nobody cancels, they just stop coming. Bloom reads your booking history, finds who is drifting from their own visit rhythm, and writes each one a personal note. A loyal regular is worth several hundred dollars a year, so saving even one covers the software.
 ```
 (199 characters.)
 
@@ -70,11 +70,12 @@ answer to a harder question, and it was a question I only found by reading the
 retention research for salons and barbershops.
 
 Nobody cancels. They just quietly stop coming, and the owner finds out months
-later, if ever. About 40% of new clients are gone within a year. A first-timer
+later, if ever. A typical salon loses about 40% of its clients every year. A first-timer
 who does not rebook within 30 days has roughly a one-in-five chance of ever
 returning, which makes days 7 to 30 after a first visit the highest-value moment
-in the entire business and the one nobody is watching. And a regular is worth
-$1,200 to $3,000 a year, so this is not a rounding error, it is the largest
+in the entire business and the one nobody is watching. And a loyal regular is
+worth several hundred dollars a year (about $600 annualized), so this is not a
+rounding error, it is the largest
 single profit leak most shops have.
 
 The reason nobody watches it is not laziness. It is that the answer is invisible:
@@ -215,9 +216,9 @@ something the market already gives away.
 The real problem was hiding in the retention research. In a salon or barbershop,
 nobody cancels. They just quietly stop coming, and the owner finds out months
 later, from a gap in the appointment book that nobody had time to notice. About
-40% of new clients are gone within a year. A first-timer who does not rebook
-within 30 days has roughly a one-in-five chance of ever returning. A regular is
-worth $1,200 to $3,000 a year. That is the largest single profit leak most shops
+40% of a salon's clients are gone within a year. A first-timer who does not
+rebook within 30 days has roughly a one-in-five chance of ever returning. A loyal
+regular is worth several hundred dollars a year. That is the largest single profit leak most shops
 have, and it stays invisible because it is an absence, spread across hundreds of
 people who each keep their own rhythm.
 
@@ -256,7 +257,7 @@ has no employees but me. What it creates is not headcount, it is protected
 livelihood. A neighbourhood salon runs on thin margins and a handful of chairs,
 and every regular who drifts away unnoticed is revenue that would otherwise pay a
 stylist. When Bloom keeps 20 clients a year who would quietly have left, worth on
-the order of $25,000, that can be the difference between a shop cutting a chair and
+the order of $12,000, that can be the difference between a shop cutting a chair and
 keeping one, or hiring the next. The economic opportunity Bloom enables is the
 retained revenue base that local service jobs actually depend on, for people well
 beyond any founding team: the stylists, barbers, and front-desk staff whose hours
@@ -369,7 +370,7 @@ field instead.
 ### Explain how your project uses AI to impact the world, specifically in the category you have chosen.
 
 The biggest profit leak in a local service business is invisible. Roughly 40% of
-new clients are gone within a year, and a first-timer who does not rebook within
+a salon's clients are gone within a year, and a first-timer who does not rebook within
 30 days has about a one-in-five chance of ever coming back. Owners do not ignore
 this because they do not care. They ignore it because the signal is an ABSENCE
 spread across hundreds of people who each have a different rhythm, and because
@@ -379,8 +380,8 @@ Bloom removes both barriers. A deterministic engine finds the drift by measuring
 every client against their own median cadence, and Gemini writes each of them a
 note that reads like the owner remembered them, because it is given that person's
 real history. A shop with 400 clients might have 20 slipping in a given month,
-worth $25,000 a year between them. Saving three of them pays for the software for
-years.
+worth over $10,000 a year between them. Saving three of them pays for the software
+for years.
 
 This is squarely Small Business Services: the AI does not advise the owner, it
 performs a service the business would otherwise pay a person for, and the outcome
@@ -398,8 +399,8 @@ to those clients requires a plan: Starter $49/month or Pro $99/month, billed
 through Stripe. Between the two tiers the only difference is who sends the weekly
 newsletter; both include the win-back, because that is the reason to pay at all.
 
-The pricing argument writes itself: a lapsed regular is worth $1,200 to $3,000 a
-year, so recovering ONE client pays for a year of Starter several times over. I am
+The pricing argument writes itself: a lapsed regular is worth several hundred
+dollars a year, so recovering ONE client pays for a year of Starter. I am
 not asking an owner to believe a projection, I am showing them their own losses
 and charging less than one of them.
 

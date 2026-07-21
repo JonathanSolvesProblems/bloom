@@ -35,9 +35,9 @@ import { SUPPORT_EMAIL } from '@/lib/config'
 // Industry retention figures, used to frame the problem honestly instead of
 // projecting Bloom's own output as a benefit.
 const painStats = [
-  { to: 40, suffix: '%', label: 'of new clients are gone within a year' },
+  { to: 40, suffix: '%', label: 'of clients a typical salon loses every year, even a well-run one' },
   { to: 20, suffix: '%', label: 'chance a first-timer ever comes back once 30 days pass with no rebooking' },
-  { to: 1200, prefix: '$', suffix: '+', label: 'a year is what one regular client is worth, so each save is real money' },
+  { to: 600, prefix: '$', suffix: '+', label: 'a year a loyal regular is worth, so saving even one covers the software' },
 ]
 
 const industries = [
@@ -218,8 +218,8 @@ export default function HomePage() {
               ))}
             </div>
             <p className="text-center text-xs text-muted mt-10">
-              Source: salon, spa and medspa client-retention research (Jeri Commerce retention statistics, Zoca
-              lapsed-client analysis, Simple Salon churn data).
+              Source: published salon industry retention benchmarks (Simple Salon and JeriCommerce churn data, Zoca
+              lapsed-client analysis). Bloom shows each of your own clients&apos; real annual value from your own book.
             </p>
           </div>
         </section>

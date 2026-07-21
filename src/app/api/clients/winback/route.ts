@@ -12,27 +12,31 @@ export const maxDuration = 60
 
 /**
  * Addresses that can never receive mail: the IANA reserved domains (RFC 2606,
- * RFC 6761) plus the obvious local ones. The sample booking history is built from
- * these on purpose, so anyone can try the radar with fake people.
- *
- * Sending to them would hard bounce. Bounces are scored against the SENDING
- * domain, which every customer shares, so a handful of curious testers clicking
- * "win them back" on sample data could get real businesses' newsletters
- * throttled. The agent drafts for these and stops short of the send.
+ * RFC 6761). The sample book is built from these on purpose, so anyone can try the
+ * radar with fake people. Sending would hard bounce, and bounces are scored
+ * against the sending domain every customer shares, so these are drafted and held.
  */
 const UNDELIVERABLE = /@(example\.(com|org|net)|test|invalid|localhost)$/i
 
+type StoredDraft = { subject: string; body: string; reasoning: string; model: string; tokensUsed: number }
+
 /**
- * Win one specific client back: the agent reads their real history, writes them a
- * personal note, and sends it. Owner-token gated.
+ * Win one specific client back, in two deliberate steps.
  *
- * This never blasts. One client, one message, once (winBackSentAt guards it).
+ * `draft` (the default): the agent reads the client's real history and writes a
+ * note, which is STORED and shown to the owner. Nothing is sent. This is the
+ * whole trust story of a product that emails your clients: you see the exact words
+ * before they go.
+ *
+ * `send`: the owner approves the stored draft and it goes out, once. `discard`
+ * throws the draft away. Owner-token gated throughout.
  */
 export async function POST(request: NextRequest) {
   const form = await request.formData()
   const businessId = request.nextUrl.searchParams.get('businessId') ?? ''
   const token = request.nextUrl.searchParams.get('t') ?? ''
   const email = (form.get('email')?.toString() ?? '').trim().toLowerCase()
+  const action = (form.get('action')?.toString() ?? 'draft').toLowerCase()
 
   const business = await db.business.findUnique({ where: { id: businessId }, include: { clients: true } })
   if (!business || !token || token !== business.dashboardToken) {
@@ -42,66 +46,136 @@ export async function POST(request: NextRequest) {
   const origin = publicBaseUrl(request)
   const back = (p: string) => `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${p}`
 
-  // Seeing who is slipping is free, because that is the hook and it costs nothing
-  // to show. Acting on it spends a Gemini call and an email from a shared sending
-  // domain, so it is what the subscription buys. This is also what stops a free
-  // signup importing 5,000 clients and writing to all of them on my bill.
-  if (business.subscriptionStatus !== 'active') {
-    return Response.redirect(back('needs_plan=1'), 303)
-  }
-
   const client = business.clients.find((c) => c.email === email)
   if (!client) return Response.redirect(back('import_error=Client%20not%20found'), 303)
   if (client.unsubscribedAt) {
     return Response.redirect(back('import_error=That%20client%20unsubscribed%2C%20so%20I%20will%20not%20contact%20them'), 303)
   }
+
+  // ---- Discard a pending draft ----
+  if (action === 'discard') {
+    await db.client.update({ where: { id: client.id }, data: { winBackDraft: null, winBackDraftedAt: null } })
+    return Response.redirect(back(`discarded=${encodeURIComponent(client.name)}`), 303)
+  }
+
+  // ---- Send an already-approved draft ----
+  if (action === 'send') {
+    if (client.winBackSentAt) return Response.redirect(back('import_error=Already%20sent'), 303)
+    if (!client.winBackDraft) return Response.redirect(back('import_error=Nothing%20to%20send%2C%20draft%20one%20first'), 303)
+
+    let draft: StoredDraft
+    try {
+      draft = JSON.parse(client.winBackDraft)
+    } catch {
+      return Response.redirect(back('import_error=That%20draft%20was%20corrupted%2C%20write%20a%20new%20one'), 303)
+    }
+
+    const apiKey = process.env.RESEND_API_KEY
+    const fromDomain = process.env.RESEND_FROM_DOMAIN
+    if (!apiKey || !fromDomain) return Response.redirect(back('import_error=Sending%20is%20not%20configured%20yet'), 303)
+    if (!business.mailingAddress?.trim()) {
+      return Response.redirect(back('import_error=Add%20your%20business%20postal%20address%20first%2C%20anti-spam%20law%20requires%20it'), 303)
+    }
+    const base = appBaseUrl()
+    if (!base) return Response.redirect(back('import_error=No%20app%20URL%20configured'), 303)
+
+    const a = assess(client, businessCadence(business.clients))
+
+    // Claim the send atomically before doing it, so a double submit cannot send
+    // twice. Also clears the pending draft, since it is being acted on now.
+    const claim = await db.client.updateMany({
+      where: { id: client.id, winBackSentAt: null },
+      data: { winBackSentAt: new Date(), winBackDraft: null, winBackDraftedAt: null },
+    })
+    if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
+    const releaseForRetry = () =>
+      db.client.updateMany({
+        where: { id: client.id },
+        data: { winBackSentAt: null, winBackDraft: client.winBackDraft, winBackDraftedAt: client.winBackDraftedAt },
+      })
+
+    // Sample address: keep the send claimed (so a later recovery still counts) but
+    // do not put a guaranteed bounce through the shared domain.
+    if (UNDELIVERABLE.test(client.email)) {
+      await db.agentLog.create({
+        data: {
+          businessId,
+          action: 'winback_drafted',
+          summary: `Held the send to a sample client, the address is a reserved test one. ${a.reason}`.slice(0, 200),
+          details: JSON.stringify({ risk: a.level, subject: draft.subject, body: draft.body, sent: false }),
+        },
+      })
+      return Response.redirect(back(`drafted=${encodeURIComponent(client.name)}`), 303)
+    }
+
+    const unsubUrl = `${base}/api/unsubscribe?c=${client.id}`
+    const html = `${brandEmail(draft.body, { name: business.name, brandColor: business.brandColor, logoUrl: business.logoUrl })}
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
+<p style="font-size:12px;line-height:1.5;color:#6b7280;text-align:center;font-family:sans-serif">
+  ${esc(business.mailingAddress)}<br />
+  <a href="${unsubUrl}" style="color:#6b7280">Unsubscribe</a>
+</p>`
+
+    try {
+      const resend = new Resend(apiKey)
+      const { error } = await resend.emails.send({
+        from: `${sanitizeSenderName(business.name)} <hello@${fromDomain}>`,
+        to: client.email,
+        subject: draft.subject,
+        html,
+        headers: {
+          'List-Unsubscribe': `<${unsubUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      })
+      if (error) throw new Error(error.message ?? JSON.stringify(error))
+    } catch (err) {
+      await releaseForRetry()
+      console.error('Win-back send failed:', err)
+      return Response.redirect(back('import_error=Send%20failed%2C%20try%20again'), 303)
+    }
+
+    await db.agentLog.create({
+      data: {
+        businessId,
+        action: 'winback_sent',
+        // Public feed: never a name, address, or amount, only the situation.
+        summary: `Wrote a personal note to a ${a.level === 'critical' ? 'client slipping away' : 'drifting client'}. ${a.reason}`.slice(0, 200),
+        details: JSON.stringify({
+          risk: a.level,
+          daysSince: a.daysSince,
+          annualValue: a.annualValue,
+          subject: draft.subject,
+          draftReasoning: draft.reasoning,
+          model: draft.model,
+          tokensUsed: draft.tokensUsed,
+        }),
+      },
+    })
+    return Response.redirect(back(`sent=${encodeURIComponent(client.name)}`), 303)
+  }
+
+  // ---- Draft (default): write a note and store it for the owner to review ----
   if (client.winBackSentAt) {
     return Response.redirect(back('import_error=Already%20reached%20out%20to%20them%2C%20I%20will%20not%20nag%20twice'), 303)
   }
 
-  // The same guards the newsletter has: a verified domain and a real postal
-  // address, because anti-spam law applies to this email too.
-  const apiKey = process.env.RESEND_API_KEY
-  const fromDomain = process.env.RESEND_FROM_DOMAIN
-  if (!apiKey || !fromDomain) {
-    return Response.redirect(back('import_error=Sending%20is%20not%20configured%20yet'), 303)
+  // Drafting is the paid, metered step, because it is the one that spends a Gemini
+  // call. Seeing the radar is free; writing to someone is what the plan buys.
+  if (business.subscriptionStatus !== 'active') {
+    return Response.redirect(back('needs_plan=1'), 303)
   }
-  if (!business.mailingAddress?.trim()) {
-    return Response.redirect(back('import_error=Add%20your%20business%20postal%20address%20first%2C%20anti-spam%20law%20requires%20it'), 303)
-  }
-  const base = appBaseUrl()
-  if (!base) return Response.redirect(back('import_error=No%20app%20URL%20configured'), 303)
-
-  // Checked here, not earlier: bailing out for an unsubscribe or a duplicate
-  // costs nothing, so it must not burn a day's allowance.
   if (!(await allowForKey('winback', businessId, LIMITS.winback))) {
     return Response.redirect(
-      back(`import_error=${encodeURIComponent(`That is ${LIMITS.winback} win-backs today, which is my daily limit. The rest will still be here tomorrow.`)}`),
+      back(`import_error=${encodeURIComponent(`That is ${LIMITS.winback} drafts today, my daily limit. The rest will still be here tomorrow.`)}`),
       303
     )
   }
   if (!(await underGlobalCap('winback', GLOBAL_LIMITS.winback))) {
-    return Response.redirect(
-      back('import_error=Sending%20is%20paused%20for%20today.%20Nothing%20is%20lost%2C%20try%20again%20tomorrow.'),
-      303
-    )
+    return Response.redirect(back('import_error=Drafting%20is%20paused%20for%20today.%20Nothing%20is%20lost%2C%20try%20again%20tomorrow.'), 303)
   }
 
   const a = assess(client, businessCadence(business.clients))
-
-  // Claim the send BEFORE drafting, not just before sending. The read at the top
-  // of this route is a snapshot, so two quick submits both sail past it; claiming
-  // first means the loser stops here instead of paying for a second Gemini call
-  // and then being told it was already sent. Released again if anything below
-  // fails, so a transient error does not lock the client out forever.
-  const claim = await db.client.updateMany({
-    where: { id: client.id, winBackSentAt: null },
-    data: { winBackSentAt: new Date() },
-  })
-  if (claim.count === 0) return Response.redirect(back('import_error=Already%20sent'), 303)
-
-  const release = () => db.client.updateMany({ where: { id: client.id }, data: { winBackSentAt: null } })
-
   let draft
   try {
     draft = await draftWinBack({
@@ -111,8 +185,6 @@ export async function POST(request: NextRequest) {
         city: business.city,
         brandVoice: business.brandVoice,
         contentLanguage: business.contentLanguage,
-        // Only what the owner configured. With nothing here the agent is told it
-        // has nothing to give away, so it cannot invent a discount.
         promotions: business.promotions,
       },
       client: {
@@ -125,96 +197,21 @@ export async function POST(request: NextRequest) {
       situation: a.reason,
     })
   } catch (err) {
-    await release()
     console.error('Win-back draft failed:', err)
     return Response.redirect(back('import_error=Could%20not%20write%20the%20message%2C%20try%20again'), 303)
   }
 
-  // Sample data: draft it, show the owner what the agent wrote, but do not put a
-  // guaranteed bounce through the shared sending domain. The claim above still
-  // stands, so the rest of the flow (including a later recovery) behaves normally.
-  if (UNDELIVERABLE.test(client.email)) {
-    await db.agentLog.create({
-      data: {
-        businessId,
-        action: 'winback_drafted',
-        // No client name or address in the summary: summaries are rendered in more
-        // than one place, and a log line is the wrong home for someone else's
-        // customer's personal data.
-        summary: `Wrote to a sample client but held the send, the address is a reserved test one. ${a.reason}`.slice(0, 200),
-        details: JSON.stringify({
-          risk: a.level,
-          daysSince: a.daysSince,
-          annualValue: a.annualValue,
-          subject: draft.subject,
-          body: draft.body,
-          // Not `reasoning`: that key is rendered generically by the public feed,
-          // and this text is written about a named client.
-          draftReasoning: draft.reasoning,
-          model: draft.model,
-          tokensUsed: draft.tokensUsed,
-          sent: false,
-        }),
-      },
-    })
-    return Response.redirect(
-      back(`drafted=${encodeURIComponent(client.name)}&subject=${encodeURIComponent(draft.subject)}`),
-      303
-    )
+  const stored: StoredDraft = {
+    subject: draft.subject,
+    body: draft.body,
+    reasoning: draft.reasoning,
+    model: draft.model,
+    tokensUsed: draft.tokensUsed,
   }
-
-  const unsubUrl = `${base}/api/unsubscribe?c=${client.id}`
-  const html = `${brandEmail(draft.body, {
-    name: business.name,
-    brandColor: business.brandColor,
-    logoUrl: business.logoUrl,
-  })}
-<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
-<p style="font-size:12px;line-height:1.5;color:#6b7280;text-align:center;font-family:sans-serif">
-  ${esc(business.mailingAddress)}<br />
-  <a href="${unsubUrl}" style="color:#6b7280">Unsubscribe</a>
-</p>`
-
-  try {
-    const resend = new Resend(apiKey)
-    const { error } = await resend.emails.send({
-      from: `${sanitizeSenderName(business.name)} <hello@${fromDomain}>`,
-      to: client.email,
-      subject: draft.subject,
-      html,
-      headers: {
-        'List-Unsubscribe': `<${unsubUrl}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
-    })
-    if (error) throw new Error(error.message ?? JSON.stringify(error))
-  } catch (err) {
-    // Release the claim so the owner can retry.
-    await release()
-    console.error('Win-back send failed:', err)
-    return Response.redirect(back('import_error=Send%20failed%2C%20try%20again'), 303)
-  }
-
-  await db.agentLog.create({
-    data: {
-      businessId,
-      action: 'winback_sent',
-      // This one IS shown on the public feed, so it describes the client by their
-      // situation and never by name, address, or what they are worth.
-      summary: `Wrote a personal note to a ${a.level === 'critical' ? 'client slipping away' : 'drifting client'}. ${a.reason}`.slice(0, 200),
-      details: JSON.stringify({
-        risk: a.level,
-        daysSince: a.daysSince,
-        daysToCliff: a.daysToCliff,
-        annualValue: a.annualValue,
-        subject: draft.subject,
-        // See the note above: not `reasoning`, it names the client.
-        draftReasoning: draft.reasoning,
-        model: draft.model,
-        tokensUsed: draft.tokensUsed,
-      }),
-    },
+  await db.client.update({
+    where: { id: client.id },
+    data: { winBackDraft: JSON.stringify(stored), winBackDraftedAt: new Date() },
   })
 
-  return Response.redirect(back(`sent=${encodeURIComponent(client.name)}`), 303)
+  return Response.redirect(back(`review=${encodeURIComponent(client.name)}`), 303)
 }

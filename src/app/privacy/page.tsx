@@ -17,40 +17,47 @@ export default function PrivacyPage() {
 
       <LegalSection heading="What I collect">
         <p>
-          From business owners: your name, email, business details, promotions, and mailing address. From your
-          newsletter subscribers: their email address, which you provide or collect through your Bloom subscribe page.
-          Payment details are handled entirely by Stripe; I never see or store your card number.
+          From business owners: your name, email, business details, and mailing address. If you use the client radar,
+          you also upload a booking export: your clients&apos; names, email addresses, and visit history. That client
+          list is yours. You control it, I only process it on your behalf, and it is used for nothing but the purpose
+          below. Payment details are handled entirely by Stripe; I never see or store your card number.
         </p>
       </LegalSection>
 
       <LegalSection heading="How I use it">
         <p>
-          Business details and promotions are sent to Google&apos;s Gemini model (through Vertex AI) to generate your
-          content. Subscriber email addresses are used only to deliver the newsletters you send through Bloom, via
-          Resend. I do not sell your data or your subscribers&apos; data, and I do not use it to advertise to you.
+          Your uploaded booking history is used to work out which of your clients are drifting from their own visit
+          rhythm, and, only when you choose to reach one, to draft a personal note through Google&apos;s Gemini model
+          (via Vertex AI) and send it from your verified domain through Resend. I never send anything to your clients
+          without you starting it. I do not sell your data or your clients&apos; data, do not use it to advertise to you,
+          and do not use it to train any model.
         </p>
       </LegalSection>
 
       <LegalSection heading="Who processes your data">
         <p>
-          Bloom relies on a small set of service providers: Neon (database), Google Cloud / Vertex AI (content
-          generation), Resend (email delivery), and Stripe (payments). Each processes data only to provide its part of
-          the service.
+          Bloom relies on a small set of service providers: Neon (database), Google Cloud / Vertex AI (drafting),
+          Resend (email delivery), and Stripe (payments). Each processes data only to provide its part of the service.
+          For your uploaded client list you are the data controller and Bloom is your processor.
         </p>
       </LegalSection>
 
-      <LegalSection heading="Your subscribers' rights">
+      <LegalSection heading="Your clients' and subscribers' rights">
         <p>
-          Every newsletter includes a working one-click unsubscribe link and the sender&apos;s postal address, as
-          required by anti-spam law. Unsubscribing removes the address from your list immediately.
+          Every email Bloom sends on your behalf, a win-back note or a newsletter, carries a working one-click
+          unsubscribe link and your postal address, as anti-spam law requires. A client who unsubscribes is flagged and
+          never contacted again. Anti-spam law (including CASL in Canada) applies to these emails, and you are
+          responsible for having a lawful basis to contact your own clients.
         </p>
       </LegalSection>
 
-      <LegalSection heading="Your rights and retention">
+      <LegalSection heading="Your rights and deletion">
         <p>
-          You can access, correct, or delete your business data at any time. To delete your account and its data, email{' '}
-          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>. I keep data for as long as your account is active and
-          remove it on request, except where I must retain records for tax or legal reasons.
+          You can delete your account and everything in it, your client list included, in one step from your dashboard,
+          under &ldquo;Delete my account and all data&rdquo;. It cancels any subscription and removes every record
+          immediately, and I keep no copy. You can also email{' '}
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> and I will do it for you. Otherwise I keep your data
+          only while your account is active.
         </p>
       </LegalSection>
 

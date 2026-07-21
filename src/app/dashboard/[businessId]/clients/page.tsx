@@ -15,7 +15,9 @@ export const dynamic = 'force-dynamic'
  * The risk engine deliberately does not know who anyone is (see ClientLike), but
  * this screen has to name them, so it carries the identity fields alongside.
  */
-type RadarClient = Assessed<ClientLike & { name: string; email: string; lastService: string }>
+type RadarClient = Assessed<
+  ClientLike & { name: string; email: string; lastService: string; winBackDraft: string | null }
+>
 
 const RISK_STYLE: Record<RiskLevel, { label: string; dot: string; text: string; ring: string }> = {
   critical: { label: 'Slipping away', dot: 'bg-red-500', text: 'text-red-500', ring: 'ring-red-500/30' },
@@ -37,8 +39,9 @@ export default async function ClientRadarPage({
     sent?: string
     recovered?: string
     needs_plan?: string
+    review?: string
     drafted?: string
-    subject?: string
+    discarded?: string
   }>
 }) {
   const { businessId } = await params
@@ -49,8 +52,9 @@ export default async function ClientRadarPage({
     sent,
     recovered,
     needs_plan: needsPlan,
+    review,
     drafted,
-    subject,
+    discarded,
   } = await searchParams
 
   const business = await db.business.findUnique({
@@ -62,23 +66,6 @@ export default async function ClientRadarPage({
   // sensitive screen in the product, so require the owner-only token and 404
   // rather than 403 so it never confirms a business exists.
   if (!t || t !== business.dashboardToken) notFound()
-
-  // When a send was held back (a sample address), show the owner what the agent
-  // actually wrote. It is the whole point of the feature and was otherwise
-  // invisible: nothing else renders a drafted note.
-  const draftedLog = drafted
-    ? await db.agentLog.findFirst({
-        where: { businessId, action: 'winback_drafted' },
-        orderBy: { createdAt: 'desc' },
-        select: { details: true },
-      })
-    : null
-  let draftedNote: { subject?: string; body?: string; draftReasoning?: string } = {}
-  try {
-    if (draftedLog?.details) draftedNote = JSON.parse(draftedLog.details)
-  } catch {
-    /* a malformed log must not take the page down */
-  }
 
   const assessed = assessAll(business.clients)
   const s = summarize(assessed)
@@ -138,54 +125,40 @@ export default async function ClientRadarPage({
             </div>
           </div>
         )}
-        {sent && (
-          <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-4 text-sm text-foreground flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-brand-emerald shrink-0 mt-0.5" />
+        {review && (
+          <div className="bg-brand-teal/[0.07] border border-brand-teal/25 rounded-xl p-4 text-sm text-foreground flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-brand-teal-text shrink-0 mt-0.5" />
             <span>
-              Sent. I wrote {sent} a personal note about their last visit and it is on its way. If they book again, your
-              next upload will count them as won back.
+              I wrote a note to {review}. Read it below, and it goes out only when you press send. Nothing has been sent.
             </span>
           </div>
         )}
-
+        {sent && (
+          <div className="bg-brand-emerald/[0.07] border border-brand-emerald/25 rounded-xl p-4 text-sm text-foreground flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-brand-emerald shrink-0 mt-0.5" />
+            <span>
+              Sent to {sent}. If they book again, your next upload will count them as won back.
+            </span>
+          </div>
+        )}
         {drafted && (
-          <div className="bg-card border border-border rounded-xl p-5 text-sm">
-            <div className="flex items-start gap-2.5">
-              <Sparkles className="w-4 h-4 text-brand-teal-text shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-foreground">Here is what I would have sent {drafted}.</p>
-                <p className="text-muted mt-1 leading-relaxed">
-                  I held the send because that is a sample client with a reserved test address. It would bounce, and
-                  bounces count against the sending domain every business here shares. Upload your own booking history
-                  and it goes out for real.
-                </p>
-
-                <div className="mt-4 rounded-lg border border-border bg-surface p-4">
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">Subject</p>
-                  <p className="text-foreground font-medium mt-1">{draftedNote.subject ?? subject}</p>
-                  {draftedNote.body && (
-                    <div
-                      className="mt-3 pt-3 border-t border-border text-foreground leading-relaxed [&_p]:mb-2"
-                      // The model wrote this and it went through the same allowlist
-                      // sanitizer as the newsletter before it was stored.
-                      dangerouslySetInnerHTML={{ __html: draftedNote.body }}
-                    />
-                  )}
-                </div>
-
-                {draftedNote.draftReasoning && (
-                  <p className="text-xs text-muted mt-3 leading-relaxed">
-                    <span className="font-semibold">Why I wrote it that way:</span> {draftedNote.draftReasoning}
-                  </p>
-                )}
-              </div>
-            </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-sm text-foreground flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-brand-teal-text shrink-0 mt-0.5" />
+            <span>
+              {drafted} is a sample client with a reserved test address, so I held the send rather than bounce a real
+              email off the shared sending domain. Upload your own booking history and it goes out for real.
+            </span>
+          </div>
+        )}
+        {discarded && (
+          <div className="bg-card border border-border rounded-xl p-4 text-sm text-muted">
+            Discarded the draft for {discarded}. Nothing was sent.
           </div>
         )}
 
         {needsPlan && (
           <div className="bg-accent-coral/[0.08] border border-accent-coral/30 rounded-xl p-4 text-sm text-foreground">
-            Reaching out is part of a paid plan. Finding who is slipping is always free.
+            Writing to a client is part of a paid plan. Finding who is slipping is always free.
           </div>
         )}
 
@@ -329,6 +302,17 @@ function ClientRow({
       ? Math.max(4, Math.round((a.daysToCliff / NEW_CLIENT_CLIFF_DAYS) * 100))
       : null
 
+  const winbackAction = `/api/clients/winback?businessId=${businessId}&t=${encodeURIComponent(token)}`
+  // A note the agent has written but the owner has not sent yet.
+  let draft: { subject?: string; body?: string; reasoning?: string } | null = null
+  if (client.winBackDraft) {
+    try {
+      draft = JSON.parse(client.winBackDraft)
+    } catch {
+      /* a corrupt draft simply shows no preview; Rewrite fixes it */
+    }
+  }
+
   return (
     <div className={`card bg-card ring-1 ${style.ring}`}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -387,37 +371,126 @@ function ClientRow({
             </span>
           ) : client.winBackSentAt ? (
             <span className="text-xs text-muted whitespace-nowrap px-3">Reached out, waiting</span>
+          ) : client.winBackDraft ? (
+            <span className="text-xs font-semibold text-brand-teal-text whitespace-nowrap px-3">Draft ready ↓</span>
           ) : !isActive ? (
             // Do not render a button that is going to bounce. Say what it costs.
             <Link href={`/api/checkout?businessId=${businessId}&plan=starter`} className="btn-outline text-sm py-2 px-4 whitespace-nowrap">
               <Lock className="w-3.5 h-3.5" /> Write to them, from $49
             </Link>
           ) : (
-            <form action={`/api/clients/winback?businessId=${businessId}&t=${encodeURIComponent(token)}`} method="post">
+            <form action={winbackAction} method="post">
               <input type="hidden" name="email" value={client.email} />
               <button type="submit" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">
-                <Sparkles className="w-3.5 h-3.5" /> Win them back
+                <Sparkles className="w-3.5 h-3.5" /> Write the note
               </button>
             </form>
           )}
         </div>
       </div>
+
+      {/* The draft, held for the owner to read before it goes anywhere. This is
+          the trust story: nothing reaches a client without them seeing it first. */}
+      {draft && !client.winBackSentAt && !client.unsubscribedAt && (
+        <div className="mt-4 pt-4 border-t border-rule">
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">To {client.name} · subject</p>
+            <p className="text-foreground font-medium mt-1">{draft.subject}</p>
+            {draft.body && (
+              <div
+                className="mt-3 pt-3 border-t border-border text-sm text-foreground leading-relaxed [&_p]:mb-2"
+                dangerouslySetInnerHTML={{ __html: draft.body }}
+              />
+            )}
+          </div>
+          {draft.reasoning && (
+            <p className="text-xs text-muted mt-2 leading-relaxed">
+              <span className="font-semibold">Why I wrote it that way:</span> {draft.reasoning}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <form action={winbackAction} method="post">
+              <input type="hidden" name="email" value={client.email} />
+              <input type="hidden" name="action" value="send" />
+              <button type="submit" className="btn-primary text-sm py-2 px-4">
+                <ArrowRight className="w-3.5 h-3.5" /> Send it to {client.name}
+              </button>
+            </form>
+            <form action={winbackAction} method="post">
+              <input type="hidden" name="email" value={client.email} />
+              <button type="submit" className="btn-outline text-sm py-2 px-3">
+                Rewrite
+              </button>
+            </form>
+            <form action={winbackAction} method="post">
+              <input type="hidden" name="email" value={client.email} />
+              <input type="hidden" name="action" value="discard" />
+              <button type="submit" className="text-sm py-2 px-3 text-muted hover:text-accent-coral-strong transition-colors">
+                Discard
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+/** One click, no file: seed the sample book server-side. This is the fastest way
+ *  for a new owner (who may not have a CSV handy) to see the radar populated. */
+function SampleButton({
+  businessId,
+  token,
+  sample,
+  children,
+  primary,
+}: {
+  businessId: string
+  token: string
+  sample: '1' | '2'
+  children: React.ReactNode
+  primary?: boolean
+}) {
+  return (
+    <form action="/api/clients/import" method="post">
+      <input type="hidden" name="t" value={token} />
+      <input type="hidden" name="businessId" value={businessId} />
+      <input type="hidden" name="sample" value={sample} />
+      <button type="submit" className={primary ? 'btn-primary text-base py-3 px-7' : 'btn-outline text-sm py-2 px-4'}>
+        {children}
+      </button>
+    </form>
   )
 }
 
 function EmptyState({ businessId, token }: { businessId: string; token: string }) {
   return (
-    <div className="text-center py-6">
-      <h1 className="text-3xl sm:text-4xl font-bold text-foreground max-w-2xl mx-auto leading-tight">
-        Find the clients you are about to lose.
-      </h1>
-      <p className="text-muted mt-4 max-w-xl mx-auto leading-relaxed">
-        Most salons lose about 40% of new clients within a year, and a first-timer who does not rebook within 30 days
-        has roughly a 1 in 5 chance of ever coming back. Upload your booking history and I will show you exactly who is
-        slipping, and what they are worth.
-      </p>
-      <div className="mt-8 max-w-xl mx-auto text-left">
+    <div className="py-4">
+      <div className="text-center">
+        <h1 className="font-display text-3xl sm:text-4xl text-foreground max-w-2xl mx-auto leading-tight">
+          Find the clients you are about to lose.
+        </h1>
+        <p className="text-muted mt-4 max-w-xl mx-auto leading-relaxed">
+          A typical salon loses about 40% of its clients every year, and a first-timer who does not rebook within 30
+          days has roughly a 1 in 5 chance of ever coming back. Upload your booking history and I will show you exactly
+          who is slipping, and what they are worth.
+        </p>
+
+        {/* The lowest-friction path first: no file needed. */}
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <SampleButton businessId={businessId} token={token} sample="1" primary>
+            See it with sample data <ArrowRight className="w-4 h-4" />
+          </SampleButton>
+          <span className="font-mono text-[11px] text-ink-soft">A made-up salon book, so you can look before uploading yours.</span>
+        </div>
+      </div>
+
+      <div className="mt-10 max-w-xl mx-auto text-left">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1 bg-rule" />
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft">or use your own book</span>
+          <div className="h-px flex-1 bg-rule" />
+        </div>
         <ImportCard businessId={businessId} token={token} />
       </div>
     </div>
@@ -426,57 +499,42 @@ function EmptyState({ businessId, token }: { businessId: string; token: string }
 
 function ImportCard({ businessId, token, compact }: { businessId: string; token: string; compact?: boolean }) {
   return (
-    <form
-      action="/api/clients/import"
-      method="post"
-      encType="multipart/form-data"
-      className="card bg-card"
-    >
-      <input type="hidden" name="t" value={token} />
-      <input type="hidden" name="businessId" value={businessId} />
-      <h2 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-        <Upload className="w-4 h-4 text-brand-teal-text" />
-        {compact ? 'Refresh from a new export' : 'Upload your booking history'}
-      </h2>
-      <p className="text-sm text-muted mb-4">
-        {compact
-          ? 'Upload a fresh export any time. Anyone who booked again after a win-back gets counted as won back.'
-          : 'Export your appointments from whatever you already use (Fresha, Square, Vagaro, Booksy, even Google Calendar) and drop the CSV here. It needs a client email and a date; service and price make it smarter. Nothing to migrate.'}
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="file"
-          name="file"
-          accept=".csv,text/csv"
-          required
-          className="input flex-1 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-brand-teal/10 file:text-brand-teal-text"
-        />
-        <button type="submit" className="btn-primary text-sm py-2 px-5 shrink-0">
-          Analyze my clients
-        </button>
-      </div>
-      <p className="text-xs text-muted mt-3">
-        {compact ? (
-          <>
-            Trying it out? This{' '}
-            <a
-              href="/api/sample-csv?returned=1"
-              className="text-brand-teal-text underline underline-offset-2 hover:no-underline"
-            >
-              follow-up sample
-            </a>{' '}
-            is the same book a few days later, with one client rebooked after a win-back.
-          </>
-        ) : (
-          <>
-            No export handy?{' '}
-            <a href="/api/sample-csv" className="text-brand-teal-text underline underline-offset-2 hover:no-underline">
-              Download a sample booking history
-            </a>{' '}
-            and upload it to see how this works.
-          </>
-        )}
-      </p>
-    </form>
+    <div className="card bg-card">
+      <form action="/api/clients/import" method="post" encType="multipart/form-data">
+        <input type="hidden" name="t" value={token} />
+        <input type="hidden" name="businessId" value={businessId} />
+        <h2 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+          <Upload className="w-4 h-4 text-brand-teal-text" />
+          {compact ? 'Refresh from a new export' : 'Upload your booking history'}
+        </h2>
+        <p className="text-sm text-muted mb-4">
+          {compact
+            ? 'Upload a fresh export any time. Anyone who booked again after a win-back gets counted as won back.'
+            : 'Export your appointments from whatever you already use (Fresha, Square, Vagaro, Booksy, even Google Calendar) and drop the CSV here. It needs a client email and a date; service and price make it smarter. Nothing to migrate, and it stays private to you.'}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="file"
+            name="file"
+            accept=".csv,text/csv"
+            required
+            className="input flex-1 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-brand-teal/10 file:text-brand-teal-text"
+          />
+          <button type="submit" className="btn-primary text-sm py-2 px-5 shrink-0">
+            Analyze my clients
+          </button>
+        </div>
+      </form>
+
+      {compact && (
+        <div className="text-xs text-muted mt-3 flex flex-wrap items-center gap-1.5">
+          <span>Trying it out?</span>
+          <SampleButton businessId={businessId} token={token} sample="2">
+            Load the follow-up sample
+          </SampleButton>
+          <span>the same book days later, with one client rebooked.</span>
+        </div>
+      )}
+    </div>
   )
 }

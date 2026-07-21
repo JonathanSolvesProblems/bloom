@@ -6,15 +6,19 @@ import { allowRequest, LIMITS } from '@/lib/ratelimit'
 const schema = z.object({
   name: z.string().min(1).max(100),
   type: z.string().min(1),
-  city: z.string().min(1).max(100),
+  city: z.string().max(100).default(''),
   province: z.string().max(50).default(''),
   country: z.string().max(3).default('CA'),
-  description: z.string().min(10).max(1000),
+  // Optional now. The flagship is the retention radar, which needs none of this;
+  // a description is only used for weekly content, so collecting it up front gated
+  // a spreadsheet analysis behind a marketing question. Prompted for later, in the
+  // dashboard, only when the owner turns content on.
+  description: z.string().max(1000).default(''),
   brandVoice: z.enum(['friendly', 'professional', 'casual', 'bold', 'elegant']).default('friendly'),
   contentLanguage: z.enum(['en', 'fr', 'es', 'pt', 'it', 'de']).default('en'),
-  // Optional at signup so the free preview stays frictionless. It is required
-  // before Pro can email (enforced in the send path), and editable in the
-  // dashboard, so a new owner is never blocked from seeing their first content.
+  // Optional at signup so the radar stays frictionless. Required before any email
+  // can send (enforced in the send path), and editable in the dashboard, so a new
+  // owner is never blocked from seeing who is slipping.
   mailingAddress: z.string().max(200).optional(),
   promotions: z.string().max(500).optional(),
   ownerName: z.string().min(1).max(100),

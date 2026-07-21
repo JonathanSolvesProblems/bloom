@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { parseBookingCsv } from '@/lib/import-csv'
 import { assessAll, summarize } from '@/lib/retention'
 import { publicBaseUrl } from '@/lib/config'
+import { sampleCsv } from '@/app/api/sample-csv/route'
 
 export const maxDuration = 60
 
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
   const token = form.get('t')?.toString() ?? ''
   const businessId = form.get('businessId')?.toString() ?? ''
   const file = form.get('file')
+  // One-click "try it with sample data": seed the built-in sample book without
+  // making a new owner download a CSV and upload it back. The follow-up sample
+  // (a client rebooked) uses sample=2, so a demo can show a save land.
+  const sample = form.get('sample')?.toString() ?? ''
 
   const business = await db.business.findUnique({ where: { id: businessId } })
   // 404 rather than 403 so the route never confirms a business exists.
@@ -31,14 +36,19 @@ export async function POST(request: NextRequest) {
   const back = (params: string) =>
     `${origin}/dashboard/${businessId}/clients?t=${encodeURIComponent(token)}&${params}`
 
-  if (!(file instanceof File) || file.size === 0) {
-    return Response.redirect(back('import_error=nofile'), 303)
-  }
-  if (file.size > MAX_BYTES) {
-    return Response.redirect(back('import_error=toobig'), 303)
+  let text: string
+  if (sample === '1' || sample === '2') {
+    text = sampleCsv(sample === '2')
+  } else {
+    if (!(file instanceof File) || file.size === 0) {
+      return Response.redirect(back('import_error=nofile'), 303)
+    }
+    if (file.size > MAX_BYTES) {
+      return Response.redirect(back('import_error=toobig'), 303)
+    }
+    text = await file.text()
   }
 
-  const text = await file.text()
   const result = parseBookingCsv(text)
 
   if (result.error) {
@@ -48,7 +58,14 @@ export async function POST(request: NextRequest) {
     return Response.redirect(back('import_error=norows'), 303)
   }
 
-  const clients = result.clients.slice(0, MAX_CLIENTS)
+  // If a book is over the cap, keep the most recently active clients rather than
+  // an arbitrary slice: a blind slice(0, N) kept whoever happened to appear first
+  // in the file and could drop the newest first-timers, who are the exact cohort
+  // on the 30-day cliff that this product exists to catch.
+  const clients =
+    result.clients.length > MAX_CLIENTS
+      ? [...result.clients].sort((a, b) => b.lastVisitAt.getTime() - a.lastVisitAt.getTime()).slice(0, MAX_CLIENTS)
+      : result.clients
 
   // Everyone the agent wrote to who has now booked again. Keyed by email, which is
   // the actual unique constraint: two clients can share a display name, and

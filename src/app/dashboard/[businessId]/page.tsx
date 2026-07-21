@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { db } from '@/lib/db'
 import CopyField from '@/components/CopyField'
+import DeleteAccount from '@/components/DeleteAccount'
+import BloomMark from '@/components/BloomMark'
 import { assessAll, summarize } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
@@ -107,10 +109,8 @@ export default async function DashboardPage({
       <header className="border-b border-border bg-card px-6 py-4 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-emerald-600 rounded-md flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">Bloom</span>
+            <BloomMark className="w-6 h-6" />
+            <span className="font-display font-bold text-foreground">Bloom</span>
             <span className="text-muted">•</span>
             <span className="text-foreground font-medium text-sm truncate max-w-xs">{business.name}</span>
           </div>
@@ -611,6 +611,10 @@ function SettingsCard({
           </form>
         ) : null}
       </div>
+
+      {/* Keeps the privacy promise, and answers the biggest objection to uploading
+          a client list: you can take it all back. */}
+      <DeleteAccount businessId={businessId} token={token} />
     </div>
   )
 }

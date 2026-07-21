@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { Sparkles, Copy, Check, ArrowRight, Loader2, Mail, ExternalLink, Radar } from 'lucide-react'
+import BloomMark from '@/components/BloomMark'
 
 type Content = {
   post1: string
@@ -56,10 +57,8 @@ export default function PreviewPage({ params }: { params: Promise<{ businessId: 
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-emerald-600 rounded-md flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">Bloom</span>
+            <BloomMark className="w-6 h-6" />
+            <span className="font-display font-bold text-foreground">Bloom</span>
           </div>
           {dashToken && (
             <Link

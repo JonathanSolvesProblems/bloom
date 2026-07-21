@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import BloomMark from './BloomMark'
 
 /** Shared frame for the Terms, Privacy, and Refund pages. */
 export function LegalShell({
@@ -16,10 +17,8 @@ export function LegalShell({
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-emerald-600 rounded-md flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">Bloom</span>
+            <BloomMark className="w-6 h-6" />
+            <span className="font-display font-bold text-foreground">Bloom</span>
           </Link>
           <Link href="/" className="text-sm text-muted hover:text-foreground transition-colors flex items-center gap-1">
             <ArrowLeft className="w-3.5 h-3.5" /> Home

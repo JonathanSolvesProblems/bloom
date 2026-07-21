@@ -72,6 +72,11 @@ model Client {
   /// Median days between this client's visits. Null when they have only ever
   /// visited once, which is exactly the highest-risk case.
   cadenceDays  Int?
+  /// A drafted win-back the owner has not yet approved. Held here so the owner can
+  /// read exactly what will be sent before it goes, which is the whole trust story
+  /// of a product that emails your clients. Cleared on send or discard.
+  winBackDraft   String?
+  winBackDraftedAt DateTime?
   /// Set when the agent has already reached out, so it never nags twice.
   winBackSentAt DateTime?
   /// Anti-spam law applies to win-back email too. Once set, the agent will never
