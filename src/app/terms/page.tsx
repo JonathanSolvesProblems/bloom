@@ -18,10 +18,12 @@ export default function TermsPage() {
 
       <LegalSection heading="What Bloom does">
         <p>
-          Bloom generates weekly marketing content for your business using AI: three social posts and an email
-          newsletter. On the Starter plan the content is written for you to publish yourself. On the Pro plan Bloom also
-          emails the newsletter to the subscribers on your list. Bloom does not post to third-party social accounts on
-          your behalf.
+          Bloom reads your booking history to find clients drifting away from their own visit rhythm, and drafts a
+          personal win-back note for each that you review and approve before anything is sent. Bloom also generates
+          weekly marketing content using AI: three social posts and an email newsletter. On the Starter plan the content
+          is written for you to publish yourself. On the Pro plan Bloom also emails the newsletter to the subscribers on
+          your list. Bloom does not post to third-party social accounts on your behalf, and never contacts a client
+          without your approval.
         </p>
       </LegalSection>
 
