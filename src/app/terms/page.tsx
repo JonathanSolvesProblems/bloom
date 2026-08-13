@@ -11,8 +11,9 @@ export default function TermsPage() {
   return (
     <LegalShell title="Terms of Service" updated="July 10, 2026">
       <p>
-        Bloom is an AI marketing service operated by {OPERATOR}. By creating a business, generating content, or
-        subscribing to a paid plan, you agree to these terms. If you do not agree, please do not use the service.
+        Bloom is an AI client-retention and marketing service operated by {OPERATOR}. By creating a business,
+        generating content, or subscribing to a paid plan, you agree to these terms. If you do not agree, please do not
+        use the service.
       </p>
 
       <LegalSection heading="What Bloom does">

@@ -10,7 +10,7 @@ type LogRow = {
   action: string
   summary: string
   details: string | null
-  business: { type: string; city: string } | null
+  business: { type: string; city: string; name: string } | null
 }
 
 const ACTION_STYLES: Record<string, { label: string; cls: string }> = {
@@ -61,15 +61,36 @@ function nextMondayUTC(): string {
   return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
 }
 
+/**
+ * Model-authored summary and reasoning can name the business it wrote for
+ * ("...relevant for Aurora Hair Studio's clientele"). Strip the business name,
+ * and its distinctive words, before any of that text reaches this public page.
+ */
+const GENERIC_NAME_WORDS = new Set([
+  'hair', 'salon', 'studio', 'spa', 'barber', 'barbershop', 'shop', 'clinic',
+  'the', 'and', 'med', 'medical', 'beauty', 'nails', 'nail', 'lab', 'co', 'inc',
+])
+function scrubName(text: string, name?: string | null): string {
+  if (!text || !name) return text
+  const parts = [name, ...name.split(/\s+/).filter((w) => w.length >= 4 && !GENERIC_NAME_WORDS.has(w.toLowerCase()))]
+  let out = text
+  for (const p of parts) {
+    out = out.replace(new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'the business')
+  }
+  return out
+}
+
 export default async function AgentPage() {
   const [logs, totalActions, generatedCount, newsletterAgg, businessCount] = await Promise.all([
     db.agentLog.findMany({
       where: { action: { in: PUBLIC_ACTIONS } },
       orderBy: { createdAt: 'desc' },
       take: 100,
-      // Do NOT expose customer business names on this public page. Show only the
-      // type and city so the feed stays concrete without identifying a customer.
-      include: { business: { select: { type: true, city: true } } },
+      // Do NOT expose customer business names on this public page. The name is
+      // loaded ONLY so it can be scrubbed out of the model-authored summary and
+      // reasoning below (the model sometimes names the business it writes for);
+      // only the type and city are ever rendered.
+      include: { business: { select: { type: true, city: true, name: true } } },
     }) as Promise<LogRow[]>,
     db.agentLog.count(),
     db.agentLog.count({ where: { action: 'generated_content' } }),
@@ -141,8 +162,10 @@ export default async function AgentPage() {
             } catch {
               /* ignore malformed details */
             }
-            const reasoning =
-              REASONING_OK.has(log.action) && typeof details.reasoning === 'string' ? details.reasoning : ''
+            const reasoning = scrubName(
+              REASONING_OK.has(log.action) && typeof details.reasoning === 'string' ? details.reasoning : '',
+              log.business?.name
+            )
             const meta = [
               details.model ? String(details.model) : '',
               typeof details.tokensUsed === 'number' ? `${details.tokensUsed.toLocaleString()} tokens` : '',
@@ -159,7 +182,7 @@ export default async function AgentPage() {
                       a {log.business.type} in {log.business.city}
                     </span>
                   )}
-                  <span className="text-white/85 flex-1 min-w-[12rem]">{log.summary}</span>
+                  <span className="text-white/85 flex-1 min-w-[12rem]">{scrubName(log.summary, log.business?.name)}</span>
                 </div>
                 {(reasoning || meta.length > 0) && (
                   <div className="mt-2 pl-1 border-l-2 border-white/10 ml-1 space-y-1">

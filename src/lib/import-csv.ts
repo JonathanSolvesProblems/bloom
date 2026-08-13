@@ -180,7 +180,7 @@ export function parseBookingCsv(text: string, now: Date = new Date()): ImportRes
       visitsParsed: 0,
       rowsSkipped: rows.length,
       columnsUsed,
-      error: 'I could not find an email column. Export your appointment history with client emails included.',
+      error: 'I could not find a client email column. Re-export with emails included (in some booking systems that is a separate "clients" or "contacts" export). The email is how the note actually reaches the client.',
     }
   }
   if (!dateCol) {

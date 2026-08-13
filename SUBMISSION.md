@@ -428,8 +428,9 @@ alongside standard tooling.
 ### Explain how your business model shared above is sustainable and viable.
 
 **Five-year goal.** The market is large: there are tens of millions of small
-businesses in North America, and local service businesses that need recurring
-marketing are a multi-million-business segment, a total addressable market in the
+businesses in North America, and local service businesses that live or die on
+repeat clients (salons, barbershops, spas, clinics) are a multi-million-business
+segment, a total addressable market in the
 billions of dollars a year at a $49 to $99 price point. A realistic five-year
 target is on the order of 10,000 paying businesses at roughly $75 average, about
 $9M in annual recurring revenue, which is a small fraction of a percent of the
@@ -442,11 +443,13 @@ scale once customer acquisition cost is covered, and with founder-led organic
 acquisition that cost starts near zero. Break-even is a few hundred paying
 businesses, not tens of thousands.
 
-**Why it's achievable.** The hypothesis, that the pain is consistency and time,
-not talent, is backed by 2026 small-business surveys (56% have under an hour a
-day, 43% cannot stay consistent, irregular posting costs ~40% of reach). The
-product is live and proven end to end: a real payment processed on live Stripe
-and a real newsletter delivered through the production path. Real arms-length
+**Why it's achievable.** The hypothesis, that the expensive pain is silent client
+churn the owner never sees, is backed by salon industry benchmarks: a typical salon
+loses 30 to 40% of its clients each year, and a first-timer who does not rebook
+within 30 days has only about a 20% chance of ever returning, while a single
+recovered regular is worth several hundred dollars a year. The product is live and
+proven end to end: a real payment processed on live Stripe, and the agent runs
+against real records in production. Real arms-length
 paying customers so far: `[UPDATE: currently 0, founder-led outreach just
 starting]`. The honest gap is adoption, which is exactly what I am now closing.
 
@@ -487,15 +490,16 @@ newsletter has been generated and delivered to a real inbox through this exact
 path.
 
 Owner-triggered today: the win-back. The owner clicks for one client; Gemini
-drafts and Bloom sends immediately, with no further human editing of the message
-before it goes. So the AI's output reaches a real customer's inbox unedited, but
-a human chooses each moment it does.
+drafts the note; the owner then reviews it, can edit any line, and approves before
+it sends. So the AI does the writing, but a human sees and approves the exact words
+before they reach a real customer's inbox, and chooses each moment one goes out.
 
-**Honest limitation, stated plainly:** the win-back draft has no self-QA gate. The
-weekly content path scores and rewrites itself; the win-back makes a single call
-and sends. The gate today is the owner clicking, which is exactly why the feature
-is owner-triggered rather than scheduled. Adding a critique pass is the next thing
-I would build before letting it run on its own.
+**Honest limitation, stated plainly:** the win-back draft has no automated self-QA
+gate. The weekly content path scores and rewrites itself; the win-back makes a
+single call and shows the draft for approval. The gate today is the owner reviewing
+and approving each note, which is exactly why the feature is owner-triggered rather
+than scheduled. Adding a critique pass is the next thing I would build before
+letting it run on its own.
 
 Every action is written to an activity feed. The public one at `/agent` shows the
 agent working without ever naming a client, because that feed is world-readable
@@ -530,6 +534,15 @@ Vertex AI. There are three call sites, all with forced response schemas:
 
 Notably, the LLM is NOT used to decide who is at risk. That is a deterministic
 median-cadence calculation, on purpose.
+
+### URL to your video pitch (public, under 3 minutes)
+
+```
+https://www.youtube.com/watch?v=zmnx2EjFu-I
+```
+> This is the current retention product ("Bloom (v2)"). An earlier
+> marketing-agent demo also exists on YouTube; link ONLY this v2 URL in the form
+> and keep the old one out of the judging path.
 
 ### URL to your GitHub repo (shared with testing@devpost.com and judging@hacker.fund)
 
@@ -697,10 +710,10 @@ I would have lost" is worth more than any amount of the engineering already done
 ### Confirmations
 
 - [ ] GitHub repo public, or shared with testing@devpost.com and judging@hacker.fund
-- [ ] 3-minute (or shorter) video, public on YouTube/Vimeo, showing the agent live
+- [x] 3-minute (or shorter) video, public on YouTube, showing the agent live: https://www.youtube.com/watch?v=zmnx2EjFu-I
 - [ ] Written narrative pasted (see the 720-word section above)
 - [ ] Revenue proof attached (Stripe export/bank statement + P&L)
 - [ ] Product evidence attached (see docs/EVIDENCE.md + a Vertex AI usage screenshot)
 - [ ] Demo URL and password put in the private notes-to-judges field
-- [ ] No single customer represents more than 40% of revenue (true: revenue is $0)
+- [x] (Form question removed by organizers 2026-07-25) No single customer >40% of revenue — moot regardless, revenue is $0
 - [ ] Related-party revenue disclosed (two refunded founder test charges, $0 net)

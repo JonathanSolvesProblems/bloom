@@ -90,7 +90,7 @@ export default function SubscribePage({ params }: { params: Promise<{ businessId
         )}
 
         <p className="text-center text-xs text-muted mt-6">
-          Powered by <span className="text-emerald-600 font-medium">Bloom</span>, AI marketing for local businesses
+          Powered by <span className="text-emerald-600 font-medium">Bloom</span>, AI client retention for local businesses
         </p>
       </div>
     </div>

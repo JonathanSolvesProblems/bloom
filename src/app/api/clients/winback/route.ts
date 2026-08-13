@@ -107,15 +107,6 @@ export async function POST(request: NextRequest) {
     if (editedSubject) draft.subject = editedSubject.slice(0, 200)
     if (editedBody?.trim()) draft.body = textToHtml(editedBody.slice(0, 4000))
 
-    const apiKey = process.env.RESEND_API_KEY
-    const fromDomain = process.env.RESEND_FROM_DOMAIN
-    if (!apiKey || !fromDomain) return Response.redirect(back('import_error=Sending%20is%20not%20configured%20yet'), 303)
-    if (!business.mailingAddress?.trim()) {
-      return Response.redirect(back('import_error=Add%20your%20business%20postal%20address%20first%2C%20anti-spam%20law%20requires%20it'), 303)
-    }
-    const base = appBaseUrl()
-    if (!base) return Response.redirect(back('import_error=No%20app%20URL%20configured'), 303)
-
     const a = assess(client, businessCadence(business.clients))
 
     // Claim the DRAFT atomically, not the sent-timestamp: a follow-up legitimately
@@ -155,6 +146,26 @@ export async function POST(request: NextRequest) {
         },
       })
       return Response.redirect(back(`drafted=${encodeURIComponent(client.name)}`, client.id), 303)
+    }
+
+    // A real send from here: validate the email config now, and release the claim
+    // if anything is missing so the owner can retry once it is set up. A held sample
+    // send above needs none of this, so it always reaches its confirmation, even on
+    // a deploy where the newsletter sender is not configured yet.
+    const apiKey = process.env.RESEND_API_KEY
+    const fromDomain = process.env.RESEND_FROM_DOMAIN
+    if (!apiKey || !fromDomain) {
+      await releaseForRetry()
+      return Response.redirect(back('import_error=Sending%20is%20not%20configured%20yet'), 303)
+    }
+    if (!business.mailingAddress?.trim()) {
+      await releaseForRetry()
+      return Response.redirect(back('import_error=Add%20your%20business%20postal%20address%20first%2C%20anti-spam%20law%20requires%20it'), 303)
+    }
+    const base = appBaseUrl()
+    if (!base) {
+      await releaseForRetry()
+      return Response.redirect(back('import_error=No%20app%20URL%20configured'), 303)
     }
 
     const unsubUrl = `${base}/api/unsubscribe?c=${client.id}`

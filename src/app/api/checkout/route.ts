@@ -6,18 +6,20 @@ import { publicBaseUrl } from '@/lib/config'
 export type Plan = 'starter' | 'pro'
 
 /**
- * The tiers differ on one real capability: whether the agent sends the
- * newsletter for you. Starter writes the week; Pro also delivers it.
+ * Both tiers include the retention agent (find the clients slipping away and
+ * draft each a personal win-back note) plus the weekly content. The tiers differ
+ * on one capability: whether the agent sends the newsletter for you. Starter
+ * writes the week; Pro also delivers it.
  */
 export const PLANS: Record<Plan, { amount: number; name: string; description: string }> = {
   starter: {
     amount: 4900,
-    name: 'Bloom Starter: AI Marketing Agent',
-    description: 'Three social posts and a newsletter written for you every Monday, ready to publish.',
+    name: 'Bloom Starter: client retention agent',
+    description: 'Finds the clients drifting away and drafts each a personal win-back note in your voice, plus a week of ready-to-publish social posts and a newsletter.',
   },
   pro: {
     amount: 9900,
-    name: 'Bloom Pro: AI Marketing Agent',
+    name: 'Bloom Pro: client retention agent',
     description: 'Everything in Starter, plus your newsletter emailed to your subscribers automatically.',
   },
 }

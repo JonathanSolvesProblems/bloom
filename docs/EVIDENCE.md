@@ -66,15 +66,16 @@ the homepage and reproducible from the sample book below.
 These log lines record model, token count, and latency.
 
 **Owner-triggered, one client at a time** (the win-back): the owner clicks for a
-specific client; Gemini drafts and Bloom sends immediately, with no human editing
-of the message before it reaches the client's inbox (`winback_sent`). These lines
-record model and token count.
+specific client; Gemini drafts the note; the owner reviews it, can edit any line,
+and approves before it sends (`winback_sent`). A human sees the exact words before
+they reach the client's inbox. These lines record model and token count.
 
 **Honest limitations:**
 
-- The win-back has **no self-QA gate**. The content path scores and rewrites
-  itself; the win-back makes a single call and sends. The gate today is the owner
-  choosing the moment, which is exactly why the feature is not scheduled.
+- The win-back has **no automated self-QA gate**. The content path scores and
+  rewrites itself; the win-back makes a single call and shows the draft for approval.
+  The gate today is the owner reviewing and approving each note, which is exactly why
+  the feature is not scheduled.
 - The win-back is **not autonomous**. It sends email in a real business's name to
   a customer they care about, and that has not earned unsupervised operation yet.
 - The **false-positive rate is unmeasured**. The thresholds come from published
