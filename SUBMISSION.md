@@ -388,6 +388,37 @@ This is squarely Small Business Services: the AI does not advise the owner, it
 performs a service the business would otherwise pay a person for, and the outcome
 is measured in whether a specific named client walked back through the door.
 
+### How do you measure impact?
+
+Theory of change: The biggest, most fixable loss in a local service business is silent
+client churn, revenue that walks out the door unnoticed because it is an absence spread
+across hundreds of individual rhythms. Make that loss visible and act on it with a
+personal, timely note, and you keep clients who would otherwise drift away, which protects
+the repeat-revenue base that local service jobs depend on.
+
+Hypotheses: (1) risk measured against each client's own median cadence catches lapses a
+fixed "no visit in 60 days" threshold gets wrong; (2) a short note in the owner's voice,
+referencing the client's real last visit, recovers a meaningful share of drifting clients;
+(3) owners will pay because one recovered regular is worth several hundred dollars a year,
+more than the subscription.
+
+Outputs I measure, per shop: clients flagged as slipping, revenue-at-risk quantified per
+client from their own history, and notes drafted and sent.
+
+Outcomes I measure: recovered clients, counted only when the owner's own next booking
+export shows a visit newer than both the last one Bloom knew about and the note that was
+sent. Recovery is proven from the customer's own data, never projected. Short term, the
+outcome is retained revenue per shop; long term, a measured false-positive rate (validated
+against owners saying "no, she is fine"), a retention-rate lift across shops, and ultimately
+protected local jobs, the stylist and front-desk hours that only exist if the chairs stay
+full.
+
+How I prove it works, not just that it runs: the negative control is the strongest
+evidence. Aisha and Jane are both 44 days out, but Bloom stays silent on Aisha (on rhythm)
+and acts on Jane (leaving). A tool measured by "notes sent" fires on both and is wrong about
+one. Bloom's success metric is the specific named client who walked back through the door,
+measured from the owner's own records.
+
 ### Explain the underlying business model of your submission.
 
 A subscription SaaS, and the free/paid line is the product's whole sales pitch:
