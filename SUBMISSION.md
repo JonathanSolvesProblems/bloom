@@ -47,9 +47,9 @@ Bloom: the AI that catches the clients you're about to lose
 ### Elevator pitch (max 200 characters)
 
 ```
-Nobody cancels, they just stop coming. Bloom reads your booking history, finds who is drifting from their own visit rhythm, and writes each one a personal note. A loyal regular is worth several hundred dollars a year, so saving even one covers the software.
+Nobody cancels, they just stop coming. Bloom finds who's drifting from their own visit rhythm and writes each a personal note. A regular is worth hundreds a year, so saving one covers the software.
 ```
-(199 characters.)
+(197 characters, within the 200 limit.)
 
 ### Thumbnail
 
