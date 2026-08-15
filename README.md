@@ -17,13 +17,15 @@ The demo of the whole thesis is two clients: **Aisha and Jane are both 44 days s
 
 ## Demo
 
+Demo video: **https://www.youtube.com/watch?v=4XNtqJFUIms**
+
 Live app: **https://bloom.jonathanandrei.com**. No signup or card needed, and you do not even need a booking export: the radar links a generated sample book ([/api/sample-csv](src/app/api/sample-csv/route.ts)) whose dates are relative to today, so it never goes stale.
 
 ## How it works
 
 1. **Upload the book.** Any CSV with a client email and a date. [src/lib/import-csv.ts](src/lib/import-csv.ts) finds the columns by keyword, so Fresha, Square, Vagaro, Booksy and Google Calendar exports all work. Same-day rows are merged into one visit, because those platforms export a row per service line item.
 2. **See who is slipping, free.** The client radar scores every client against their own cadence and shows what each is worth a year. This costs nothing to show, so it costs nothing to see.
-3. **The agent writes to them.** Owner-triggered, one client at a time: Gemini drafts a note referencing that person's last visit and timing, and Bloom sends it from the business's verified domain. Never a blast, never twice, never to someone who opted out.
+3. **The agent writes to them.** Owner-triggered, one client at a time: Gemini drafts a note referencing that person's last visit and timing; the owner reviews and approves it, and Bloom sends it from the business's verified domain. Never a blast, never twice, never to someone who opted out.
 4. **The save is measured.** Re-upload a fresh export; if they booked again *after* the note went out, Bloom counts it. Recovery is proven by the owner's own data, not claimed.
 
 Separately, a weekly content agent runs fully autonomously on a cron sidecar (see [docker-compose.yml](docker-compose.yml)), generating that week's posts and newsletter and, on Pro, sending it. It is the original product and it still ships; it is no longer the headline.

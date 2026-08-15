@@ -1,8 +1,9 @@
 # Bloom: Hackathon Submission
 
-Draft answers for the XPRIZE / Hacker.fund "Build with Gemini" submission form.
-Written in the first person. Numbers marked `[UPDATE]` change as real users come
-in, so refresh them right before you submit.
+Draft answers for the XPRIZE / Hacker.fund "Build with Gemini" submission form,
+written in the first person. The revenue, expense, and user figures are all zero
+as of submission and are stated as final values; if a real sale lands before you
+submit, update the matching figure and its explanation.
 
 - **Live product:** https://bloom.jonathanandrei.com
 - **Repository:** https://github.com/JonathanSolvesProblems/bloom
@@ -97,9 +98,9 @@ losses.
 
 Then the agent acts. For one specific client, it reads that person's real history
 (what they last had done, how often they normally come, how far past their own
-rhythm they are) and writes them a short note in the owner's brand voice, which
-Bloom sends from the business's verified domain. Never a blast: one message, one
-person, once. If they book again, the owner's next export proves it, and Bloom
+rhythm they are) and writes them a short note in the owner's brand voice. The
+owner reviews it, edits any line if they want, and approves before Bloom sends it
+from the business's verified domain. Never a blast: one message, one person, once. If they book again, the owner's next export proves it, and Bloom
 counts the save.
 
 **The single sentence:** it is your appointment book, but it reads itself.
@@ -248,8 +249,8 @@ the agent working without ever naming a client.
 
 **How it runs day to day.** The owner sets up once. The radar is free, because
 showing someone their own losses should not cost anything. When they act, Bloom
-drafts and sends from their verified domain, never twice, never to anyone who
-opted out. When a client books again, the owner's next export proves it, and Bloom
+drafts a note the owner reviews and approves, then sends from their verified
+domain, never twice, never to anyone who opted out. When a client books again, the owner's next export proves it, and Bloom
 counts the save from their own data rather than claiming it.
 
 **Jobs and economic opportunity beyond me.** Today the honest answer is that Bloom
@@ -450,8 +451,8 @@ within 30 days has only about a 20% chance of ever returning, while a single
 recovered regular is worth several hundred dollars a year. The product is live and
 proven end to end: a real payment processed on live Stripe, and the agent runs
 against real records in production. Real arms-length
-paying customers so far: `[UPDATE: currently 0, founder-led outreach just
-starting]`. The honest gap is adoption, which is exactly what I am now closing.
+paying customers so far: zero, with founder-led outreach just starting. The
+honest gap is adoption, which is exactly what I am now closing.
 
 ### Please explain how your business operates with AI.
 
@@ -538,20 +539,20 @@ median-cadence calculation, on purpose.
 ### URL to your video pitch (public, under 3 minutes)
 
 ```
-https://www.youtube.com/watch?v=zmnx2EjFu-I
+https://www.youtube.com/watch?v=4XNtqJFUIms
 ```
-> This is the current retention product ("Bloom (v2)"). An earlier
-> marketing-agent demo also exists on YouTube; link ONLY this v2 URL in the form
-> and keep the old one out of the judging path.
+> This is the current retention demo. Earlier marketing-agent and prior retention
+> cuts also exist on YouTube; link ONLY this URL in the form and keep the older
+> ones out of the judging path.
 
 ### URL to your GitHub repo (shared with testing@devpost.com and judging@hacker.fund)
 
 ```
 https://github.com/JonathanSolvesProblems/bloom
 ```
-> ACTION: the repo is currently private. Either make it public (it has an MIT
-> LICENSE) or add `testing@devpost.com` and `judging@hacker.fund` as
-> collaborators before submitting.
+> The repo is public (github.com/JonathanSolvesProblems/bloom, MIT LICENSE), so
+> testing@devpost.com and judging@hacker.fund can access it directly. No
+> collaborator invites needed.
 
 ### Provide a URL to a file in your repository that shows evidence of your product running.
 
@@ -578,20 +579,20 @@ project.
 ## Financials (Hackathon period: May to August 2026)
 
 > Honest reporting. The only transactions to date were my own end-to-end payment
-> tests, which I refunded, so net revenue is $0. Update the `[UPDATE]` figures
-> right before submitting as real customers come in.
+> tests, which I refunded, so net revenue is $0. Every figure below is stated as a
+> final value; if a real sale lands before you submit, update the matching one.
 
 ### Total Revenue (USD, even if $0)
 
 ```
-0   [UPDATE]
+0
 ```
 Net of refunds. See the explanation below.
 
 ### Revenue by Month (May, June, July, August 2026)
 
 ```
-May: $0, June: $0, July: $0, August: $0   [UPDATE]
+May: $0, June: $0, July: $0, August: $0
 ```
 
 ### Explain the revenue shared above.
@@ -613,7 +614,7 @@ Net of refunds. Gross was $98 from two founder self-test purchases (July 10 and 
 ### Total Expenses (USD, even if $0)
 
 ```
-~3   [UPDATE]
+~3
 ```
 Approximately $3 USD: the Stripe processing fee retained on the two refunds
 (about C$1.72 each) plus a few cents of Gemini/Vertex AI usage for test
@@ -652,24 +653,21 @@ tiers.
 ### Number of users acquired during the hackathon (even if 0)
 
 ```
-0   [UPDATE]
+0
 ```
 No real external users yet; founder-led sharing is just starting.
 
 ### Number of those users paying for your services or product during the hackathon (even if 0)
 
 ```
-0   [UPDATE]
+0
 ```
 The only two payments were my own self-tests, both refunded.
 
 ### Testimonial (verifiable, public post online)
 
-```
-[UPDATE: none yet]
-```
-Will add a real, publicly verifiable customer testimonial once a real business is
-using it.
+None yet, so leave this field blank. I will not fabricate one, and will add a
+real, publicly verifiable customer testimonial once a real business is using it.
 
 ### Level of learning derived from the project
 
@@ -701,19 +699,18 @@ The form wants documentary proof, not just the figures above:
 The form asks for real customer contact info (name, email, phone) and any
 testimonials. As of now there are none, and I will not fabricate any.
 
-```
-[UPDATE: none yet. As real salons come in, add name, email, phone, and any
-written feedback here. Even one real owner saying "yes, she is exactly the client
-I would have lost" is worth more than any amount of the engineering already done.]
-```
+None yet, and I will not fabricate any. As real salons come in, this is where
+their name, email, phone, and any written feedback go. Even one real owner saying
+"yes, she is exactly the client I would have lost" is worth more than any amount
+of the engineering already done.
 
 ### Confirmations
 
-- [ ] GitHub repo public, or shared with testing@devpost.com and judging@hacker.fund
-- [x] 3-minute (or shorter) video, public on YouTube, showing the agent live: https://www.youtube.com/watch?v=zmnx2EjFu-I
+- [x] GitHub repo public (github.com/JonathanSolvesProblems/bloom), MIT licensed
+- [x] 3-minute (or shorter) video, public on YouTube, showing the agent live: https://www.youtube.com/watch?v=4XNtqJFUIms
 - [ ] Written narrative pasted (see the 720-word section above)
 - [ ] Revenue proof attached (Stripe export/bank statement + P&L)
 - [ ] Product evidence attached (see docs/EVIDENCE.md + a Vertex AI usage screenshot)
 - [ ] Demo URL and password put in the private notes-to-judges field
-- [x] (Form question removed by organizers 2026-07-25) No single customer >40% of revenue — moot regardless, revenue is $0
+- [x] (Form question removed by organizers 2026-07-25) No single customer >40% of revenue, moot regardless since revenue is $0
 - [ ] Related-party revenue disclosed (two refunded founder test charges, $0 net)
