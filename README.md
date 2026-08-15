@@ -19,6 +19,8 @@ The demo of the whole thesis is two clients: **Aisha and Jane are both 44 days s
 
 Demo video: **https://www.youtube.com/watch?v=4XNtqJFUIms**
 
+Writeup: **https://jonathanandrei.com/blog/bloom-client-retention-gemini-xprize-hackerfund/**
+
 Live app: **https://bloom.jonathanandrei.com**. No signup or card needed, and you do not even need a booking export: the radar links a generated sample book ([/api/sample-csv](src/app/api/sample-csv/route.ts)) whose dates are relative to today, so it never goes stale.
 
 ## How it works
