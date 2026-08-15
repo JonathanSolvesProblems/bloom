@@ -598,7 +598,7 @@ May: $0, June: $0, July: $0, August: $0
 ### Explain the revenue shared above.
 
 Net revenue during the hackathon is $0. There were two transactions, both on
-live Stripe: $49 USD each, on July 10 and 11, 2026. Both were my own founder
+live Stripe: $49 USD each, both on July 11, 2026 (UTC). Both were my own founder
 self-test purchases to verify the payment path end to end, and I refunded both
 within 24 hours. They were related-party (me), not arms-length sales. No
 third-party customer has paid yet; founder-led outreach is just beginning.
@@ -608,18 +608,18 @@ third-party customer has paid yet; founder-led outreach is just beginning.
 ```
 0
 ```
-Net of refunds. Gross was $98 from two founder self-test purchases (July 10 and 11,
-2026), both fully refunded, so net related-party revenue is $0.
+Net of refunds. Gross was $98 from two founder self-test purchases (both on
+July 11, 2026 UTC), both fully refunded, so net related-party revenue is $0.
 
 ### Total Expenses (USD, even if $0)
 
 ```
-~3
+~6
 ```
-Approximately $3 USD: the Stripe processing fee retained on the two refunds
-(about C$1.72 each) plus a few cents of Gemini/Vertex AI usage for test
-generations. Hosting (OVH sandbox), domain, Neon, Resend, and Vercel incurred no
-new cost during the period.
+Approximately US$6 (the account's net balance is -C$8.50): the Stripe processing
+fees retained on the two refunds (C$3.70 each) plus currency and settlement costs,
+and a few cents of Gemini/Vertex AI usage for test generations. Hosting (OVH
+sandbox), domain, Neon, Resend, and Vercel incurred no new cost during the period.
 
 ### Total Cost of Goods Sold (USD, even if $0)
 
@@ -678,7 +678,7 @@ Significant
 ### Profit evidence (P&L)
 
 Upload a simple P&L (template: https://bit.ly/4w3DvwL) reflecting the figures
-above: revenue $0 net, expenses ~$3, so a small net loss of about $3 for the
+above: revenue $0 net, expenses ~$6, so a small net loss of about $6 for the
 period. Formats allowed: pdf, xls, xlsx, csv, png, jpg.
 
 ### Revenue proof to attach (from the official email)
@@ -689,8 +689,8 @@ The form wants documentary proof, not just the figures above:
   dashboard (Payments to CSV) covering the period. It will show the two July test
   charges and their refunds, which matches the $0-net story exactly. That honesty
   is an asset, not a liability: it proves the payment path is real and live.
-- **P&L** using the template (https://bit.ly/4w3DvwL): $0 net revenue, ~$3
-  expenses, ~$3 net loss.
+- **P&L** using the template (https://bit.ly/4w3DvwL): $0 net revenue, ~$6
+  expenses, ~$6 net loss.
 - **Corporate ID:** none. Bloom is not incorporated; it is a solo project. State
   that plainly rather than leaving the field blank.
 
